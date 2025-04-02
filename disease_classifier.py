@@ -1,102 +1,145 @@
-import csv
 import os
 import pandas as pd
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
 from collections import defaultdict
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier, export_graphviz
-from graphviz import Source
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score
 
-# Ensure correct working directory
+# Define disease groups based on the provided list.
+disease_groups = {
+    "Neurological": [
+        "Alzheimer's disease", "accident cerebrovascular", "aphasia", "confusion", "encephalopathy",
+        "epilepsy", "migraine disorders", "neuropathy", "parkinson disease", "tonic-clonic epilepsy",
+        "tonic-clonic seizures", "transient ischemic attack", "deglutition disorder", "incontinence",
+        "delirium", "dementia"
+    ],
+    "Infectious": [
+        "HIV", "Pneumocystis carinii pneumonia", "acquired immuno-deficiency syndrome", "bacteremia",
+        "candidiasis", "cellulitis", "infection", "infection urinary tract", "influenza",
+        "oral candidiasis", "pneumonia", "pneumonia aspiration", "sepsis (invertebrate)",
+        "septicemia", "systemic infection", "upper respiratory infection", "osteomyelitis",
+        "hiv infections"
+    ],
+    "Cardiovascular": [
+        "cardiomyopathy", "coronary arteriosclerosis", "coronary heart disease", "deep vein thrombosis",
+        "edema pulmonary", "effusion pericardial", "embolism pulmonary", "failure heart",
+        "failure heart congestive", "hypertensive disease", "hypertension pulmonary", "ischemia",
+        "mitral valve insufficiency", "myocardial infarction", "overload fluid", "paroxysmal dyspnea",
+        "pericardial effusion body substance", "peripheral vascular disease", "stenosis aortic valve",
+        "tachycardia sinus", "thrombus", "tricuspid valve insufficiency", "endocarditis"
+    ],
+    "Gastrointestinal": [
+        "adhesion", "biliary calculus", "cholecystitis", "cholelithiasis", "cirrhosis", "colitis",
+        "diverticulitis", "diverticulosis", "gastritis", "gastroenteritis", "gastroesophageal reflux disease",
+        "hemorrhoids", "hepatitis", "hepatitis B", "hepatitis C", "hernia", "hernia hiatal",
+        "ileus", "pancreatitis", "ulcer peptic"
+    ],
+    "Neoplasms": [
+        "adenocarcinoma", "carcinoma", "carcinoma breast", "carcinoma colon", "carcinoma of lung",
+        "carcinoma prostate", "fibroid tumor", "malignant neoplasm of breast", "malignant neoplasm of lung",
+        "malignant neoplasm of prostate", "malignant neoplasms", "malignant tumor of colon", "melanoma",
+        "neoplasm", "neoplasm metastasis", "primary carcinoma of the liver cells", "primary malignant neoplasm",
+        "lymphoma"
+    ],
+    "Psychiatric": [
+        "affect labile", "anxiety state", "bipolar disorder", "delusion", "dependence",
+        "depression mental", "depressive disorder", "manic disorder", "paranoia", "personality disorder",
+        "psychotic disorder", "schizophrenia", "suicide attempt"
+    ],
+    "Renal": [
+        "chronic kidney failure", "failure kidney", "insufficiency renal", "kidney disease",
+        "kidney failure acute", "pyelonephritis"
+    ],
+    "Musculoskeletal": [
+        "arthritis", "degenerative polyarthritis", "osteoporosis"
+    ],
+    "Endocrine/Metabolic": [
+        "diabetes", "hyperglycemia", "hypoglycemia", "obesity", "obesity morbid",
+        "ketoacidosis diabetic", "hypercholesterolemia", "hyperlipidemia", "hypothyroidism",
+        "hyperbilirubinemia", "gout"
+    ],
+    "Hematologic": [
+        "anemia", "lymphatic diseases", "neutropenia", "pancytopenia", "sickle cell anemia", "thrombocytopaenia"
+    ],
+    "Respiratory": [
+        "asthma", "bronchitis", "chronic obstructive airway disease", "emphysema pulmonary",
+        "pneumothorax", "spasm bronchial", "respiratory failure"
+    ],
+    "Ophthalmologic": [
+        "glaucoma"
+    ],
+    "Urological": [
+        "benign prostatic hypertrophy"
+    ],
+    "Dermatological": [
+        "exanthema"
+    ],
+    "Miscellaneous": [
+        "chronic alcoholic intoxication", "decubitus ulcer", "dehydration"
+    ]
+}
+
+# Create a reverse lookup: map each specific disease to its group.
+disease_to_group = {}
+for group, diseases in disease_groups.items():
+    for disease in diseases:
+        disease_to_group[disease] = group
+
+# Load the training dataset (which contains one row per [disease, symptom, occurrence_count])
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-data_path = os.path.join(BASE_DIR, "Desktop/AIApp/diseases.xlsx")
-cleaned_data_path = os.path.join(BASE_DIR, "cleaned_data.csv")
 training_data_path = os.path.join(BASE_DIR, "training_dataset.csv")
-tree_output_path = os.path.join(BASE_DIR, "tree.dot")
-tree_img_path = os.path.join(BASE_DIR, "tree.png")
+df = pd.read_csv(training_data_path)
 
-# Read dataset
-df = pd.read_excel(data_path, engine='openpyxl')
-data = df.ffill()
+# Features are the one-hot encoded symptoms (starting at column 2) and labels are diseases (first column)
+X = df.iloc[:, 1:]
+y = df['disease']
 
-def process_data(data):
-    data_list = []
-    data_name = data.replace('^', '_').split('_')
-    for i, name in enumerate(data_name):
-        if i % 2 == 1:
-            data_list.append(name.strip())
-    return data_list
+# Map the actual disease labels to their groups.
+# If a disease isn't found in our mapping, label it as 'unknown'
+y_grouped = y.map(disease_to_group).fillna('unknown')
 
-disease_list = []
-disease_symptom_dict = defaultdict(list)
-disease_symptom_count = {}
+# Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(X, y_grouped, test_size=0.2, random_state=101)
 
-for _, row in data.iterrows():
-    disease = row['Disease'].strip()
-    if disease:
-        disease_list = process_data(disease)
-        count = row['Count of Disease Occurrence']
+# Train a Multinomial Naïve Bayes model
+clf_nb = MultinomialNB()
+clf_nb.fit(X_train, y_train)
 
-    symptom = row['Symptom'].strip()
-    if symptom:
-        symptom_list = process_data(symptom)
-        for d in disease_list:
-            for s in symptom_list:
-                disease_symptom_dict[d].append(s)
-            disease_symptom_count[d] = count
+# Get predictions and probability estimates
+y_pred = clf_nb.predict(X_test)
+y_pred_proba = clf_nb.predict_proba(X_test)
+group_classes = clf_nb.classes_
 
-# Save cleaned data
-with open(cleaned_data_path, 'w', newline='') as f:
-    writer = csv.writer(f)
-    for key, val in disease_symptom_dict.items():
-        for symptom in val:
-            writer.writerow([key, symptom, disease_symptom_count[key]])
+correct_predictions = 0
+total_predictions = len(y_test)
 
-df = pd.read_csv(cleaned_data_path, names=['disease', 'symptom', 'occurence_count'])
-df.replace(float('nan'), np.nan, inplace=True)
-df.dropna(inplace=True)
+# Evaluate each test case
+for i in range(len(y_test)):
+    actual_group = y_test.iloc[i]
+    predicted_group = y_pred[i]
 
-# Encode categorical symptoms
-label_encoder = LabelEncoder()
-integer_encoded = label_encoder.fit_transform(df['symptom'])
+    # Retrieve symptoms present in this test case (features with value 1)
+    symptoms_present = X_test.iloc[i]
+    active_symptoms = symptoms_present[symptoms_present == 1].index.tolist()
 
-onehot_encoder = OneHotEncoder(sparse_output=False)
-integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
-onehot_encoded = onehot_encoder.fit_transform(integer_encoded)
+    # Determine the top 5 predicted groups with confidence scores
+    prediction_probs = y_pred_proba[i]
+    top_5_indices = np.argsort(prediction_probs)[::-1][:5]
+    top_5_predictions = [(group_classes[idx], prediction_probs[idx] * 100) for idx in top_5_indices]
 
-cols = df['symptom'].unique()
-df_ohe = pd.DataFrame(onehot_encoded, columns=cols)
+    # Output the test case details
+    print(f"\nTest Case {i+1}:")
+    print(f"Symptoms Present: {', '.join(active_symptoms)}")
+    print(f"Actual Disease Group: {actual_group}")
+    print(f"Predicted Disease Group: {predicted_group}")
+    print("Top 5 Predictions:")
+    for group, confidence in top_5_predictions:
+        print(f"- {group}: {confidence:.2f}% confidence")
 
-df_disease = df['disease']
-df_concat = pd.concat([df_disease, df_ohe], axis=1).drop_duplicates()
-df_concat = df_concat.groupby('disease').sum().reset_index()
+    if predicted_group == actual_group:
+        correct_predictions += 1
 
-df_concat.to_csv(training_data_path, index=False)
-
-# Train Model
-X = df_concat.iloc[:, 1:]  # Features
-y = df_concat['disease']   # Labels
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=101)
-
-clf_dt = DecisionTreeClassifier().fit(X_train, y_train)
-
-# Export Decision Tree
-export_graphviz(clf_dt, out_file=tree_output_path, feature_names=X.columns)
-graph = Source(export_graphviz(clf_dt, out_file=None, feature_names=X.columns))
-
-# Save tree visualization
-png_bytes = graph.pipe(format='png')
-with open(tree_img_path, 'wb') as f:
-    f.write(png_bytes)
-
-# Evaluate Model
-disease_pred = clf_dt.predict(X_test)
-disease_real = y_test.values
-
-for i in range(len(disease_real)):
-    if disease_pred[i] != disease_real[i]:
-        print(f'Predicted: {disease_pred[i]}, Actual: {disease_real[i]}')
+# Calculate and print group-based accuracy
+accuracy = correct_predictions / total_predictions
+print(f"\nModel Accuracy (group-based): {accuracy:.2%}")
