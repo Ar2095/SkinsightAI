@@ -12,7 +12,7 @@ from graphviz import Source
 
 # Ensure correct working directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-data_path = os.path.join(BASE_DIR, "Desktop/AIApp/diseases.xlsx")
+data_path = os.path.join(BASE_DIR, "diseases.xlsx")
 cleaned_data_path = os.path.join(BASE_DIR, "cleaned_data.csv")
 training_data_path = os.path.join(BASE_DIR, "training_dataset.csv")
 tree_output_path = os.path.join(BASE_DIR, "tree.dot")
