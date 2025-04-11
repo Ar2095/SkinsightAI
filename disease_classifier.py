@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score
 
+
 # Define disease groups based on the provided list.
 disease_groups = {
     "Neurological": [
@@ -145,3 +146,25 @@ for i in range(len(y_test)):
 # Calculate and print group-based accuracy
 accuracy = correct_predictions / total_predictions
 print(f"\nModel Accuracy (group-based): {accuracy:.2%}")
+
+
+#Predictions based on user input 
+
+def predict_user_disease(symptoms):
+    user_input= pd.DataFrame([[0] * X.shape[1]], columns=X.columns)
+    #one hot encodes if the symptom is present or not 
+    for symptom in symptoms:
+        if symptom in user_input.columns:
+            user_input.at[0, symptom] = 1;
+    # Make prediction
+    predicted_group = clf_nb.predict(user_input)[0]
+    prediction_probs = clf_nb.predict_proba(user_input)[0]
+  
+    top_5_indices = np.argsort(prediction_probs)[::-1][:5]
+    top_5_predictions = [(group_classes[idx], prediction_probs[idx] * 100) for idx in top_5_indices]
+    
+    predictions = f"Predicted Disease Group: {predicted_group}\n"; 
+    predictions += "\nTop 5 Predictions:\n"
+    for group, confidence in top_5_predictions:
+         predictions += (f"- {group}: {confidence:.2f}% confidence\n")
+    return predictions; 
