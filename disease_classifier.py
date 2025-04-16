@@ -147,7 +147,6 @@ for i in range(len(y_test)):
 accuracy = correct_predictions / total_predictions
 print(f"\nModel Accuracy (group-based): {accuracy:.2%}")
 
-
 #Predictions based on user input 
 
 def predict_user_disease(symptoms):

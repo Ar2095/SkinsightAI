@@ -12,7 +12,6 @@ from disease_classifier import predict_user_disease
 if __name__ == "__main__":
     st.title('Symptom-Disease Matcher')
     st.subheader("Enter your symptoms to learn what disease/issue your body may be experiencing. Type in each symptom separared by commas.")
-    #user_input  = st.chat_input("Type your symptoms here")
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     training_data_path = os.path.join(BASE_DIR, "training_dataset.csv")
     df = pd.read_csv(training_data_path)
