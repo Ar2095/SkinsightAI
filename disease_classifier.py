@@ -81,90 +81,101 @@ disease_groups = {
     ]
 }
 
-# Create a reverse lookup: map each specific disease to its group.
+# Map each disease to its group
 disease_to_group = {}
 for group, diseases in disease_groups.items():
     for disease in diseases:
         disease_to_group[disease] = group
 
-# Load the training dataset (which contains one row per [disease, symptom, occurrence_count])
+# Load dataset
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-data_path = os.path.join(BASE_DIR, "diseases.xlsx")
-cleaned_data_path = os.path.join(BASE_DIR, "cleaned_data.csv")
 training_data_path = os.path.join(BASE_DIR, "training_dataset.csv")
 df = pd.read_csv(training_data_path)
 
-# Features are the one-hot encoded symptoms (starting at column 2) and labels are diseases (first column)
+# Prepare features and labels
 X = df.iloc[:, 1:]
 y = df['disease']
-
-# Map the actual disease labels to their groups.
-# If a disease isn't found in our mapping, label it as 'unknown'
 y_grouped = y.map(disease_to_group).fillna('unknown')
 
-# Train-Test Split
+# Split data for group classifier
 X_train, X_test, y_train, y_test = train_test_split(X, y_grouped, test_size=0.2, random_state=101)
-
-# Train a Multinomial Naïve Bayes model
 clf_nb = MultinomialNB()
 clf_nb.fit(X_train, y_train)
-
-# Get predictions and probability estimates
-y_pred = clf_nb.predict(X_test)
-y_pred_proba = clf_nb.predict_proba(X_test)
 group_classes = clf_nb.classes_
 
+# Split data for individual disease classifier
+X_train_d, X_test_d, y_train_d, y_test_d = train_test_split(X, y, test_size=0.2, random_state=101)
+clf_nb_disease = MultinomialNB()
+clf_nb_disease.fit(X_train_d, y_train_d)
+disease_classes = clf_nb_disease.classes_
+
+# Evaluate on test set
+y_pred = clf_nb.predict(X_test)
+y_pred_proba = clf_nb.predict_proba(X_test)
 correct_predictions = 0
 total_predictions = len(y_test)
 
-# Evaluate each test case
 for i in range(len(y_test)):
     actual_group = y_test.iloc[i]
+    actual_disease = y_test_d.iloc[i]
     predicted_group = y_pred[i]
-
-    # Retrieve symptoms present in this test case (features with value 1)
     symptoms_present = X_test.iloc[i]
     active_symptoms = symptoms_present[symptoms_present == 1].index.tolist()
 
-    # Determine the top 5 predicted groups with confidence scores
     prediction_probs = y_pred_proba[i]
     top_5_indices = np.argsort(prediction_probs)[::-1][:5]
     top_5_predictions = [(group_classes[idx], prediction_probs[idx] * 100) for idx in top_5_indices]
 
-    # Output the test case details
+    disease_probs = clf_nb_disease.predict_proba(pd.DataFrame([symptoms_present], columns=X.columns))[0]
+    top_5_disease_indices = np.argsort(disease_probs)[::-1][:5]
+    top_5_diseases = [(disease_classes[idx], disease_probs[idx] * 100) for idx in top_5_disease_indices]
+
     print(f"\nTest Case {i+1}:")
     print(f"Symptoms Present: {', '.join(active_symptoms)}")
     print(f"Actual Disease Group: {actual_group}")
-    print(f"Predicted Disease Group: {predicted_group}")
-    print("Top 5 Predictions:")
+    print(f"Actual Disease: {actual_disease}")
+
+    print("Top 5 Disease Group Predictions:")
     for group, confidence in top_5_predictions:
         print(f"- {group}: {confidence:.2f}% confidence")
+
+    print("Top 5 Disease Predictions:")
+    for disease, confidence in top_5_diseases:
+        print(f"- {disease}: {confidence:.2f}% confidence")
 
     if predicted_group == actual_group:
         correct_predictions += 1
 
-# Calculate and print group-based accuracy
-accuracy = correct_predictions / total_predictions
-print(f"\nModel Accuracy (group-based): {accuracy:.2%}")
+# Accuracy metrics
+group_accuracy = correct_predictions / total_predictions
+print(f"\nModel Accuracy (group-based): {group_accuracy:.2%}")
 
+y_pred_disease = clf_nb_disease.predict(X_test_d)
+disease_accuracy = accuracy_score(y_test_d, y_pred_disease)
+print(f"Model Accuracy (individual disease-based): {disease_accuracy:.2%}")
 
-#Predictions based on user input 
-
+# Predict diseases from user symptoms
 def predict_user_disease(symptoms):
-    user_input= pd.DataFrame([[0] * X.shape[1]], columns=X.columns)
-    #one hot encodes if the symptom is present or not 
+    user_input = pd.DataFrame([[0] * X.shape[1]], columns=X.columns)
     for symptom in symptoms:
         if symptom in user_input.columns:
-            user_input.at[0, symptom] = 1;
-    # Make prediction
+            user_input.at[0, symptom] = 1
+
     predicted_group = clf_nb.predict(user_input)[0]
     prediction_probs = clf_nb.predict_proba(user_input)[0]
-  
     top_5_indices = np.argsort(prediction_probs)[::-1][:5]
-    top_5_predictions = [(group_classes[idx], prediction_probs[idx] * 100) for idx in top_5_indices]
-    
-    predictions = f"Predicted Disease Group: {predicted_group}\n"; 
-    predictions += "\nTop 5 Predictions:\n"
-    for group, confidence in top_5_predictions:
-         predictions += (f"- {group}: {confidence:.2f}% confidence\n")
-    return predictions; 
+    top_5_groups = [(group_classes[idx], prediction_probs[idx] * 100) for idx in top_5_indices]
+
+    disease_probs = clf_nb_disease.predict_proba(user_input)[0]
+    top_5_disease_indices = np.argsort(disease_probs)[::-1][:5]
+    top_5_diseases = [(disease_classes[idx], disease_probs[idx] * 100) for idx in top_5_disease_indices]
+
+    group_results = f"### Predicted Disease Groups:\n"
+    for group, confidence in top_5_groups:
+        group_results += f"- {group}<br><sub>{confidence:.2f}% confidence</sub>\n"
+
+    disease_results = f"### Predicted Individual Diseases:\n"
+    for disease, confidence in top_5_diseases:
+        disease_results += f"- {disease}<br><sub>{confidence:.2f}% confidence</sub>\n"
+
+    return group_results, disease_results
