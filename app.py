@@ -5,6 +5,7 @@ from sklearn.naive_bayes import MultinomialNB
 import streamlit as st
 from disease_classifier import predict_user_disease
 
+
 if __name__ == "__main__":
     st.title('Symptom-Disease Matcher')
     st.subheader("Enter your symptoms to learn what issue you may be experiencing.")
@@ -17,11 +18,22 @@ if __name__ == "__main__":
     symptoms = st.multiselect('Select Your Symptoms:', symptom_list)
 
     if st.button("Predict"):
-        group_output, disease_output = predict_user_disease(symptoms)
+        if not symptoms:
+            st.warning("Please select at least one symptom before predicting.")
+        else:
+            group_output, disease_output = predict_user_disease(symptoms)
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown(group_output, unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(group_output, unsafe_allow_html=True)
 
-        with col2:
-            st.markdown(disease_output, unsafe_allow_html=True)
+            with col2:
+                st.markdown(disease_output, unsafe_allow_html=True)
+
+    # Medical disclaimer at the bottom
+    st.markdown("---")
+    st.markdown(
+        "<sub>🛑 **Disclaimer:** This tool is not a substitute for professional medical advice, diagnosis, or treatment. "
+        "Always seek the advice of your health provider with any questions you may have regarding a medical condition.</sub>",
+        unsafe_allow_html=True
+    )
