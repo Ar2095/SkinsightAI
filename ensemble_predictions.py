@@ -2,9 +2,14 @@ import streamlit as st
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 import numpy as np
+from sklearn.ensemble import VotingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+from sklearn.calibration import CalibratedClassifierCV
 
 st.title("Disease Classification Accuracy Test")
 
@@ -42,28 +47,44 @@ else:
     y_binary = df["Target"]
     Xb_train, Xb_test, yb_train, yb_test = train_test_split(X, y_binary, test_size=0.2, random_state=42)
 
-    model_binary = RandomForestClassifier(random_state=42)
-    model_binary.fit(Xb_train, yb_train)
-    yb_pred = model_binary.predict(Xb_test)
+    #model_binary = RandomForestClassifier(random_state=42)
+    base_model =  XGBClassifier(use_label_encoder=False, eval_metric='mlogloss')
+    base_model.fit(Xb_train, yb_train)
+    calibrated_model = CalibratedClassifierCV(base_model, method='sigmoid', cv="prefit")
+
+    #gaussian_model = GaussianNB()
+    #regression_model = LogisticRegression(max_iter=1000)
+
+
+
+    calibrated_model.fit(Xb_train, yb_train)
+    yb_pred = calibrated_model.predict(Xb_test)
     binary_accuracy = accuracy_score(yb_test, yb_pred)
+
 
     st.success(f"✅ Binary accuracy (detecting '{selected_disease}'): **{binary_accuracy * 100:.2f}%**")
 
     # Multiclass classification
-    y_multi = df["Disease"]
-    Xm_train, Xm_test, ym_train, ym_test = train_test_split(X, y_multi, test_size=0.2, random_state=42)
+    label_encoder = LabelEncoder() 
 
-    model_multi = RandomForestClassifier(random_state=42)
-    model_multi.fit(Xm_train, ym_train)
-    ym_pred = model_multi.predict(Xm_test)
+    y_multi = df["Disease"]
+    y_multi_encoded = label_encoder.fit_transform(y_multi)
+
+    Xm_train, Xm_test, ym_train, ym_test = train_test_split(X, y_multi_encoded, test_size=0.2, random_state=42)
+
+    multi_model = XGBClassifier(use_label_encoder=False, eval_metric='mlogloss', random_state=42)
+    multi_model.fit(Xm_train, ym_train)
+    ym_pred = multi_model.predict(Xm_test)
+
     overall_accuracy = accuracy_score(ym_test, ym_pred)
 
     st.info(f"📈 Multiclass accuracy (exact match): **{overall_accuracy * 100:.2f}%**")
 
     # Top-5 accuracy calculation
-    proba = model_multi.predict_proba(Xm_test)
+    proba = multi_model.predict_proba(Xm_test)
+
     top5_preds = np.argsort(proba, axis=1)[:, -5:]  # Get indices of top 5 classes
-    class_labels = model_multi.classes_
+    class_labels = multi_model.classes_
     top5_labels = class_labels[top5_preds]
 
     # Check if true label is in top 5
