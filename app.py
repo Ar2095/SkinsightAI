@@ -36,4 +36,8 @@ if __name__ == "__main__":
         "<sub>🛑 **Disclaimer:** This tool is not a substitute for professional medical advice, diagnosis, or treatment. "
         "Always seek the advice of your health provider with any questions you may have regarding a medical condition.</sub>",
         unsafe_allow_html=True
+<<<<<<< HEAD
     )
+=======
+    )
+>>>>>>> 353ba621 (skin classification app)
