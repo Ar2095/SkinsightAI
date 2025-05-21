@@ -20,19 +20,30 @@ class SkinDataset(Dataset):
         self.samples = []
         self.subtype_to_idx = {}
 
-        for label_dir in self.root_dir.glob("*"):
-            if not label_dir.is_dir():
+        # Adjusted folder traversal for your dataset structure:
+        # dataset/
+        #   benign/
+        #     benign-xxx/
+        #     benign-yyy/
+        #   malignant/
+        #     malignant-xxx/
+        #     malignant-yyy/
+        for binary_class_dir in self.root_dir.glob("*"):
+            if not binary_class_dir.is_dir():
                 continue
-            for img_path in label_dir.rglob("*.*"):
-                if img_path.suffix.lower() not in [".jpg", ".jpeg", ".png"]:
+            for subtype_dir in binary_class_dir.glob("*"):
+                if not subtype_dir.is_dir():
                     continue
-                parts = img_path.parent.name.split("_", 1)
-                binary_label = 0 if "benign" in parts[0].lower() else 1
-                subtype_name = img_path.parent.name.lower()
+                subtype_name = subtype_dir.name.lower()
+                binary_label = 0 if "benign" in binary_class_dir.name.lower() else 1
                 if subtype_name not in self.subtype_to_idx:
                     self.subtype_to_idx[subtype_name] = len(self.subtype_to_idx)
                 subtype_label = self.subtype_to_idx[subtype_name]
-                self.samples.append((img_path, binary_label, subtype_label))
+
+                for img_path in subtype_dir.glob("*.*"):
+                    if img_path.suffix.lower() not in [".jpg", ".jpeg", ".png"]:
+                        continue
+                    self.samples.append((img_path, binary_label, subtype_label))
 
         self.idx_to_subtype = {v: k for k, v in self.subtype_to_idx.items()}
 
@@ -163,9 +174,10 @@ def evaluate(model, val_loader, dataset):
 # === Main ===
 if __name__ == "__main__":
     dataset = SkinDataset("dataset", transform=train_transforms)
+
     print("Using device:", device)
     print(f"Total samples: {len(dataset)}")
-    print(f"Subtypes ({len(dataset.subtype_to_idx)}): {list(dataset.subtype_to_idx.keys())}")
+    print(f"Subtypes ({len(dataset.subtype_to_idx)}): {list(dataset.subtype_to_idx.keys())}")  # This will print your subtype classes
 
     val_size = int(0.2 * len(dataset))
     train_size = len(dataset) - val_size
@@ -180,5 +192,5 @@ if __name__ == "__main__":
     train(model, train_loader, optimizer, epochs=10)
     evaluate(model, val_loader, dataset)
 
-    torch.save(model.state_dict(), "dual_head_skin_model.pth")
-    print("Model saved to dual_head_skin_model.pth")
+    torch.save(model.state_dict(), "skin_model.pth")
+    print("Model saved to skin_model.pth")
