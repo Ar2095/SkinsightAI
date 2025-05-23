@@ -4,21 +4,7 @@ import torch.nn as nn
 from torchvision import transforms, models
 from PIL import Image
 from pathlib import Path
-
-# === Dataset class to extract subtypes from folders ===
-class SkinDataset:
-    def __init__(self, root_dir):
-        self.root_dir = Path(root_dir)
-        self.subtype_to_idx = {}
-        # Scan folders to build subtype_to_idx map
-        for label_dir in self.root_dir.glob("*"):
-            if not label_dir.is_dir():
-                continue
-            for subfolder in label_dir.iterdir():
-                if subfolder.is_dir():
-                    subtype_name = subfolder.name.lower()
-                    if subtype_name not in self.subtype_to_idx:
-                        self.subtype_to_idx[subtype_name] = len(self.subtype_to_idx)
+import torch.nn.functional as F  # for softmax
 
 # === Model Definition ===
 class DualHeadResNet(nn.Module):
@@ -49,17 +35,57 @@ class DualHeadResNet(nn.Module):
         subtype_out = self.subtype_head(features)
         return binary_out, subtype_out
 
-# === Load model and subtypes from dataset folder ===
-@st.cache_resource
-def load_model_and_subtypes(dataset_path="dataset", model_path="dual_head_skin_model.pth"):
-    dataset = SkinDataset(dataset_path)
-    subtype_to_idx = dataset.subtype_to_idx
-    idx_to_subtype = {v: k for k, v in subtype_to_idx.items()}
+# === Hardcoded subtype list ===
+HARDCODED_SUBTYPES = [
+    "malignant_soft-tissue-proliferations",
+    "malignant_adnexal-epithelial-proliferations",
+    "malignant_melanocytic-proliferation",
+    "malignant_epidermal-proliferations",
+    "benign_flat-melanotic-pigmentations",
+    "benign_soft-tissue-proliferations",
+    "benign_inflammatory-or-infectious-diseases",
+    "benign_adnexal-epithelial-proliferations",
+    "benign_melanocytic-proliferations",
+    "benign_epidermal-proliferations",
+    "benign_other"
+]
 
-    model = DualHeadResNet(num_subtypes=len(subtype_to_idx))
-    model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+PRETTY_SUBTYPE_NAMES = {
+    "malignant_soft-tissue-proliferations": "Soft Tissue Proliferations (Malignant)",
+    "malignant_adnexal-epithelial-proliferations": "Adnexal Epithelial Proliferations (Malignant)",
+    "malignant_melanocytic-proliferation": "Melanocytic Proliferations (Malignant)",
+    "malignant_epidermal-proliferations": "Epidermal Proliferations (Malignant)",
+    "benign_flat-melanotic-pigmentations": "Flat Melanotic Pigmentations (Benign)",
+    "benign_soft-tissue-proliferations": "Soft Tissue Proliferations (Benign)",
+    "benign_inflammatory-or-infectious-diseases": "Inflammatory or Infectious Diseases (Benign)",
+    "benign_adnexal-epithelial-proliferations": "Adnexal Epithelial Proliferations (Benign)",
+    "benign_melanocytic-proliferations": "Melanocytic Proliferations (Benign)",
+    "benign_epidermal-proliferations": "Epidermal Proliferations (Benign)",
+    "benign_other": "Other (Benign)"
+}
+
+@st.cache_resource
+def load_model_and_subtypes(model_path="dual_head_skin_model.pth"):
+    checkpoint = torch.load(model_path, map_location=torch.device('cpu'))
+
+    subtype_to_idx = {name: idx for idx, name in enumerate(HARDCODED_SUBTYPES)}
+
+    if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+        model_state = checkpoint['model_state_dict']
+    else:
+        model_state = checkpoint
+
+    num_subtypes = len(subtype_to_idx)
+    if num_subtypes == 0:
+        raise ValueError("No subtypes found. Check your hardcoded list.")
+
+    model = DualHeadResNet(num_subtypes=num_subtypes)
+    model.load_state_dict(model_state)
     model.eval()
+
+    idx_to_subtype = {v: k for k, v in subtype_to_idx.items()}
     return model, idx_to_subtype
+
 
 # === Image preprocessing ===
 def preprocess_image(image):
@@ -75,25 +101,36 @@ def preprocess_image(image):
 st.title("Skin Lesion Classifier")
 st.write("Upload an image of a skin lesion to classify it as benign or malignant and identify the subtype.")
 
-# Load model and subtypes once
 model, idx_to_subtype = load_model_and_subtypes()
-
-st.write(f"Detected Subtypes ({len(idx_to_subtype)}):")
-st.write(list(idx_to_subtype.values()))
 
 uploaded_file = st.file_uploader("Choose a skin image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Uploaded Image", use_column_width=True)
+    st.image(image, caption="Uploaded Image", use_container_width=True)
 
     input_tensor = preprocess_image(image)
 
     with torch.no_grad():
         bin_out, subtype_out = model(input_tensor)
-        bin_pred = torch.sigmoid(bin_out).item()
-        subtype_pred = torch.argmax(subtype_out, dim=1).item()
+
+        prob_malignant = torch.sigmoid(bin_out).item()
+        prob_benign = 1 - prob_malignant
+
+        subtype_probs = F.softmax(subtype_out, dim=1).squeeze(0)
+        top3_probs, top3_indices = torch.topk(subtype_probs, k=3)
 
     st.subheader("Prediction:")
-    st.write(f"**Binary Classification:** {'Malignant' if bin_pred > 0.5 else 'Benign'} (Confidence: {bin_pred:.2f})")
-    st.write(f"**Subtype:** {idx_to_subtype[subtype_pred]}")
+    st.write(f"**Predicted Class:** {'Malignant' if prob_malignant > prob_benign else 'Benign'}")
+    st.write(f"- Benign Probability: {prob_benign:.4f}")
+    st.write(f"- Malignant Probability: {prob_malignant:.4f}")
+    
+
+    st.write("**Subtype Predictions:**")
+    top3 = torch.topk(subtype_probs, 3)
+    for i in range(3):
+        idx = top3.indices[i].item()
+        prob = top3.values[i].item()
+        raw_name = idx_to_subtype.get(idx, "Unknown")
+        pretty_name = PRETTY_SUBTYPE_NAMES.get(raw_name, raw_name)
+        st.write(f"{pretty_name}: {prob:.4f}")
