@@ -2,9 +2,9 @@ import streamlit as st
 import torch
 import torch.nn as nn
 from torchvision import transforms, models
-from PIL import Image
-from pathlib import Path
-import torch.nn.functional as F  # for softmax
+from PIL import Image, ImageDraw
+import torch.nn.functional as F
+from streamlit_cropper import st_cropper
 
 # === Model Definition ===
 class DualHeadResNet(nn.Module):
@@ -86,7 +86,6 @@ def load_model_and_subtypes(model_path="dual_head_skin_model.pth"):
     idx_to_subtype = {v: k for k, v in subtype_to_idx.items()}
     return model, idx_to_subtype
 
-
 # === Image preprocessing ===
 def preprocess_image(image):
     transform = transforms.Compose([
@@ -97,19 +96,71 @@ def preprocess_image(image):
     ])
     return transform(image).unsqueeze(0)
 
+# === Create 3x3 grid overlay ===
+def create_rule_of_thirds_overlay(size=224, line_color=(255, 0, 0, 100), line_width=2):
+    """
+    Create a transparent PNG image with a 3x3 grid (rule of thirds).
+    size: width and height of the overlay in pixels.
+    line_color: RGBA tuple for line color and transparency.
+    """
+    overlay = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    one_third = size // 3
+    two_third = 2 * one_third
+
+    # Vertical lines
+    draw.line([(one_third, 0), (one_third, size)], fill=line_color, width=line_width)
+    draw.line([(two_third, 0), (two_third, size)], fill=line_color, width=line_width)
+
+    # Horizontal lines
+    draw.line([(0, one_third), (size, one_third)], fill=line_color, width=line_width)
+    draw.line([(0, two_third), (size, two_third)], fill=line_color, width=line_width)
+
+    return overlay
+
 # === Main Streamlit app ===
 st.title("Skin Lesion Classifier")
 st.write("Upload an image of a skin lesion to classify it as benign or malignant and identify the subtype.")
 
 model, idx_to_subtype = load_model_and_subtypes()
 
-uploaded_file = st.file_uploader("Choose a skin image...", type=["jpg", "jpeg", "png"])
-
+uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Uploaded Image", use_container_width=True)
 
-    input_tensor = preprocess_image(image)
+    st.markdown("### Step 1: Crop the image")
+    st.write(
+        """
+        **Guidelines for cropping:**
+
+        - Adjust the crop box so the skin lesion is centered within the square.
+        - Make sure the lesion is clearly visible and occupies a good portion of the box,
+          but avoid zooming in too closely.
+        - The crop area should be square to prevent distortion.
+        - Try to exclude unnecessary background to improve model accuracy.
+        """
+    )
+
+    cropped_img = st_cropper(
+        image,
+        aspect_ratio=(1, 1),
+        box_color='#FF4B4B',
+        return_type='image',
+        realtime_update=True
+    )
+
+    # Resize to 224x224 for model input
+    cropped_img_resized = cropped_img.resize((224, 224))
+
+    # Create and overlay the grid
+    overlay = create_rule_of_thirds_overlay(size=224)
+    img_with_grid = Image.alpha_composite(cropped_img_resized.convert("RGBA"), overlay)
+
+    st.image(img_with_grid, caption="Cropped Image with 3x3 Grid Overlay", use_container_width=True)
+
+    input_tensor = preprocess_image(cropped_img_resized)
 
     with torch.no_grad():
         bin_out, subtype_out = model(input_tensor)
@@ -124,13 +175,11 @@ if uploaded_file:
     st.write(f"**Predicted Class:** {'Malignant' if prob_malignant > prob_benign else 'Benign'}")
     st.write(f"- Benign Probability: {prob_benign:.4f}")
     st.write(f"- Malignant Probability: {prob_malignant:.4f}")
-    
 
     st.write("**Subtype Predictions:**")
-    top3 = torch.topk(subtype_probs, 3)
     for i in range(3):
-        idx = top3.indices[i].item()
-        prob = top3.values[i].item()
+        idx = top3_indices[i].item()
+        prob = top3_probs[i].item()
         raw_name = idx_to_subtype.get(idx, "Unknown")
         pretty_name = PRETTY_SUBTYPE_NAMES.get(raw_name, raw_name)
         st.write(f"{pretty_name}: {prob:.4f}")
