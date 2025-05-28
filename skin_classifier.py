@@ -5,6 +5,7 @@ from torchvision import transforms, models
 from PIL import Image, ImageDraw
 import torch.nn.functional as F
 from streamlit_cropper import st_cropper
+import pandas as pd
 
 # === Model Definition ===
 class DualHeadResNet(nn.Module):
@@ -98,11 +99,6 @@ def preprocess_image(image):
 
 # === Create 3x3 grid overlay ===
 def create_rule_of_thirds_overlay(size=224, line_color=(255, 0, 0, 100), line_width=2):
-    """
-    Create a transparent PNG image with a 3x3 grid (rule of thirds).
-    size: width and height of the overlay in pixels.
-    line_color: RGBA tuple for line color and transparency.
-    """
     overlay = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
 
@@ -123,9 +119,16 @@ def create_rule_of_thirds_overlay(size=224, line_color=(255, 0, 0, 100), line_wi
 st.title("Skin Lesion Classifier")
 st.write("Upload an image of a skin lesion to classify it as benign or malignant and identify the subtype.")
 
+with st.expander("📘 Learn about skin cancer: The ABCDEs of melanoma"):
+    st.markdown("### How to Recognize Signs of Melanoma")
+    st.markdown("If you notice any of these signs, it's important to consult a healthcare provider.")
+    image = Image.open("images/abcde_chart.png")
+    st.image(image, use_container_width=True)
+
 model, idx_to_subtype = load_model_and_subtypes()
 
 uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
+
 if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Uploaded Image", use_container_width=True)
@@ -143,23 +146,45 @@ if uploaded_file:
         """
     )
 
-    cropped_img = st_cropper(
-        image,
-        aspect_ratio=(1, 1),
-        box_color='#FF4B4B',
-        return_type='image',
-        realtime_update=True
-    )
+    # Display good crop examples
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.image("images/crop1.png", use_container_width=True)
+    with col2:
+        st.image("images/crop2.png", use_container_width=True)
+    with col3:
+        st.image("images/crop3.png", use_container_width=True)
 
-    # Resize to 224x224 for model input
-    cropped_img_resized = cropped_img.resize((224, 224))
+    # Side-by-side cropping and preview with 2:1 ratio columns
+    col_crop1, col_crop2, col_preview = st.columns([1, 1, 1])  # We'll merge first two later
+    # Instead of three columns, combine col_crop1 and col_crop2 into one container using `beta_container` or just create columns with [2,1]
+    # So final:
+    col_crop, col_preview = st.columns([2, 1])
 
-    # Create and overlay the grid
-    overlay = create_rule_of_thirds_overlay(size=224)
-    img_with_grid = Image.alpha_composite(cropped_img_resized.convert("RGBA"), overlay)
+    with col_crop:
+        st.markdown("#### Crop the Lesion")
+        # Resize uploaded image to fixed width for cropper
+        fixed_width = 450
+        aspect_ratio = image.width / image.height
+        new_height = int(fixed_width / aspect_ratio)
+        resized_for_cropper = image.resize((fixed_width, new_height))
 
-    st.image(img_with_grid, caption="Cropped Image with 3x3 Grid Overlay", use_container_width=True)
+        cropped_img = st_cropper(
+            resized_for_cropper,
+            aspect_ratio=(1, 1),
+            box_color='#FF4B4B',
+            return_type='image',
+            realtime_update=True
+        )
 
+    with col_preview:
+        st.markdown("#### Preview with 3x3 Grid")
+        cropped_img_resized = cropped_img.resize((224, 224))
+        overlay = create_rule_of_thirds_overlay(size=224)
+        img_with_grid = Image.alpha_composite(cropped_img_resized.convert("RGBA"), overlay)
+        st.image(img_with_grid, caption="Cropped Image with 3x3 Grid", use_container_width=True)
+
+    # === Prediction ===
     input_tensor = preprocess_image(cropped_img_resized)
 
     with torch.no_grad():
@@ -169,17 +194,51 @@ if uploaded_file:
         prob_benign = 1 - prob_malignant
 
         subtype_probs = F.softmax(subtype_out, dim=1).squeeze(0)
-        top3_probs, top3_indices = torch.topk(subtype_probs, k=3)
 
-    st.subheader("Prediction:")
-    st.write(f"**Predicted Class:** {'Malignant' if prob_malignant > prob_benign else 'Benign'}")
-    st.write(f"- Benign Probability: {prob_benign:.4f}")
-    st.write(f"- Malignant Probability: {prob_malignant:.4f}")
+    # Display main prediction
+    main_pred_class = "Malignant" if prob_malignant > prob_benign else "Benign"
+    st.subheader("Prediction")
+    st.write(f"**Prediction:** {main_pred_class}")
 
-    st.write("**Subtype Predictions:**")
-    for i in range(3):
-        idx = top3_indices[i].item()
-        prob = top3_probs[i].item()
-        raw_name = idx_to_subtype.get(idx, "Unknown")
-        pretty_name = PRETTY_SUBTYPE_NAMES.get(raw_name, raw_name)
-        st.write(f"{pretty_name}: {prob:.4f}")
+    # Probability table for benign/malignant
+    class_df = pd.DataFrame([
+        {"Prediction": "Benign", "Probability": f"{prob_benign:.4f}"},
+        {"Prediction": "Malignant", "Probability": f"{prob_malignant:.4f}"}
+    ])
+    st.dataframe(class_df, hide_index=True, use_container_width=True)
+
+    # === Top Subtype Predictions ===
+    st.subheader("Subtype Predictions")
+
+    # Create list of predictions over 1% probability
+    visible_preds = []
+    for idx, prob in enumerate(subtype_probs):
+        if prob.item() > 0.01:
+            raw_name = idx_to_subtype.get(idx, "Unknown")
+            pretty_name = PRETTY_SUBTYPE_NAMES.get(raw_name, raw_name)
+            visible_preds.append({"Subtype": pretty_name, "Probability": prob.item()})
+
+    # Sort visible_preds by probability descending
+    visible_preds = sorted(visible_preds, key=lambda x: x["Probability"], reverse=True)
+
+    if visible_preds:
+        # Format probabilities as strings for display
+        for pred in visible_preds:
+            pred["Probability"] = f"{pred['Probability']:.4f}"
+        subtype_df = pd.DataFrame(visible_preds)
+        st.dataframe(subtype_df, hide_index=True, use_container_width=True)
+    else:
+        st.write("No subtype predictions exceeded the 0.01 probability threshold.")
+    st.caption("Only predictions with probability greater than 0.01 are shown.")
+
+
+    st.markdown("---")
+    st.markdown(
+        """
+        <div style="font-size: 0.9em; color: gray; padding-top: 1em;">
+        Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.  
+        If you have any concerns, please consult a certified dermatologist.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
