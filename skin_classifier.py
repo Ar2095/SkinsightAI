@@ -200,12 +200,31 @@ if uploaded_file:
     st.subheader("Prediction")
     st.write(f"**Prediction:** {main_pred_class}")
 
+    def highlightPrediction(row):
+        if row["Prediction"] == "Benign":
+            return ['background-color: #d4edda; color: #155724'] * len(row)
+        elif row["Prediction"] == "Malignant":
+            return ['background-color: #f8d7da; color: #721c24'] * len(row)
+        return ['']* len(row)
+    
+    def highlightSubtype(row):
+        prob = float(row["Probability"])
+        # Adjust thresholds or colors as needed
+        if prob > 0.5:
+            return ['background-color: #f8d7da; color: #721c24'] * len(row)  # Reddish for higher probs
+        elif prob > 0.1:
+            return ['background-color: #fff3cd; color: #856404'] * len(row)  # Yellow for mid-range
+        else:
+            return ['background-color: #d4edda; color: #155724'] * len(row)  # Greenish for lower probs
+
+    
     # Probability table for benign/malignant
     class_df = pd.DataFrame([
-        {"Prediction": "Benign", "Probability": f"{prob_benign:.4f}"},
-        {"Prediction": "Malignant", "Probability": f"{prob_malignant:.4f}"}
+        {"Prediction": "Benign", "Probability": prob_benign},
+        {"Prediction": "Malignant", "Probability": prob_malignant}
     ])
-    st.dataframe(class_df, hide_index=True, use_container_width=True)
+    styled_df = class_df.style.apply(highlightPrediction, axis=1).format({"Probability": "{:.4f}"})
+    st.dataframe(styled_df, hide_index=True, use_container_width=True)
 
     # === Top Subtype Predictions ===
     st.subheader("Subtype Predictions")
@@ -222,14 +241,12 @@ if uploaded_file:
     visible_preds = sorted(visible_preds, key=lambda x: x["Probability"], reverse=True)
 
     if visible_preds:
-        # Format probabilities as strings for display
-        for pred in visible_preds:
-            pred["Probability"] = f"{pred['Probability']:.4f}"
         subtype_df = pd.DataFrame(visible_preds)
-        st.dataframe(subtype_df, hide_index=True, use_container_width=True)
+        subtype_styled_df = subtype_df.style.apply(highlightSubtype, axis = 1).format({"Probability": "{:.4f}"})
+        st.dataframe(subtype_styled_df, hide_index=True, use_container_width=True)
     else:
         st.write("No subtype predictions exceeded the 0.01 probability threshold.")
-    st.caption("Only predictions with probability greater than 0.01 are shown.")
+        st.caption("Only predictions with probability greater than 0.01 are shown.")
 
 
     st.markdown("---")
