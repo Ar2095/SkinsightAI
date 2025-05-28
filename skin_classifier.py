@@ -240,6 +240,22 @@ if st.session_state.stage == 1:
         image = Image.open(uploaded_file).convert("RGB")
         st.image(image, caption="Uploaded Image", use_container_width=True)
         st.session_state.uploaded_file = uploaded_file
+        st.markdown("""
+            <style>
+            div.stButton > button:first-child {
+                background-color: #2e7d32;
+                color: white;
+                border-radius: 8px;
+                padding: 0.6em 1.2em;
+                border: none;
+            }
+
+            div.stButton > button:first-child:hover {
+                background-color: #1b5e20;
+                color: white;
+            }
+            </style>
+        """, unsafe_allow_html=True)
         if st.button("Continue"):
             st.session_state.stage = 2
             st.session_state.scroll_to_top = True
@@ -304,7 +320,22 @@ if st.session_state.stage == 2:
             overlay = create_rule_of_thirds_overlay(size=224)
             img_with_grid = Image.alpha_composite(cropped_img_resized.convert("RGBA"), overlay)
             st.image(img_with_grid, use_container_width=True)
+        st.markdown("""
+            <style>
+            div.stButton > button:first-child {
+                background-color: #2e7d32;
+                color: white;
+                border-radius: 8px;
+                padding: 0.6em 1.2em;
+                border: none;
+            }
 
+            div.stButton > button:first-child:hover {
+                background-color: #1b5e20;
+                color: white;
+            }
+            </style>
+        """, unsafe_allow_html=True)
         if st.button("Predict"):
             st.session_state.cropped_img = cropped_img_resized  # just pass through
             st.session_state.stage = 3
@@ -385,7 +416,7 @@ if st.session_state.stage == 3:
             advice = "This means it may be cancerous and harmful. It's recommended that you consult a dermatolagist for a clinical skin examination or dermoscopy as soon as possible. Early treatment is often very effective, and the sooner it is caught, the better the outcome."
         st.write(advice)
 
-        st.markdown("### Subtype Predictions")
+        st.markdown("### Top Subtype Predictions")
         visible_preds = []
         for idx, prob in enumerate(subtype_probs):
             if prob.item() > 0.01:
@@ -404,7 +435,6 @@ if st.session_state.stage == 3:
             st.dataframe(styled_subtype_df, hide_index=True, use_container_width=True)
         else:
             st.write("No subtype predictions exceeded the 0.01 probability threshold.")
-        st.caption("Only predictions with probability greater than 0.01 are shown.")
 
         st.markdown("---")
         st.markdown(
