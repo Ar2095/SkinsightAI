@@ -223,7 +223,7 @@ if st.session_state.stage == 1:
     st.image(logo_img, width=700)
     st.markdown("---")
     st.write("Skin cancer is the most common cancer in the United States. Early detection can save your life.")
-    with st.expander("📕 Learn more about skin cancer: The ABCDEs of melanoma"):
+    with st.expander("📕 Learn more about skin cancer: The ABCDE of Melanoma"):
         st.markdown("### How to Recognize Signs of Melanoma")
         st.image("images/abcde_chart.png", use_container_width=True)
     st.markdown("---")
@@ -240,11 +240,21 @@ if st.session_state.stage == 1:
         image = Image.open(uploaded_file).convert("RGB")
         st.image(image, caption="Uploaded Image", use_container_width=True)
         st.session_state.uploaded_file = uploaded_file
-        if st.button("Next: Crop Image"):
+        if st.button("Continue"):
             st.session_state.stage = 2
             st.session_state.scroll_to_top = True
             st.rerun()
             scroll_to_anchor()
+    st.markdown("---")
+    st.markdown(
+            """
+            <div style="font-size: 0.9em; color: gray; padding-top: 1em;">
+            Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.  
+            If you have any concerns, please consult a certified dermatologist.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
 #CROP
@@ -256,12 +266,11 @@ if st.session_state.stage == 2:
     if st.session_state.uploaded_file is not None:
         image = Image.open(st.session_state.uploaded_file)
         #st.image(image, caption="Original Image", use_container_width=True)
+        st.markdown("##### Guidelines for cropping:")
         st.write(
             """
-            **Guidelines for cropping:**
-
-            - Adjust the crop box so the skin lesion is centered within the square.
-            - Make sure the lesion is clearly visible, but avoid zooming in too closely.
+            - Adjust the bounding box so the skin mark is centered within the square.
+            - Make sure the mark is clearly visible, but avoid zooming in too closely.
             - Try to exclude unnecessary background to improve model accuracy.
             """
         )
@@ -296,11 +305,22 @@ if st.session_state.stage == 2:
             img_with_grid = Image.alpha_composite(cropped_img_resized.convert("RGBA"), overlay)
             st.image(img_with_grid, use_container_width=True)
 
-        if st.button("Fake Crop → Next"):
+        if st.button("Predict"):
             st.session_state.cropped_img = cropped_img_resized  # just pass through
             st.session_state.stage = 3
             st.rerun()
             scroll_to_anchor()
+
+        st.markdown("---")
+        st.markdown(
+            """
+            <div style="font-size: 0.9em; color: gray; padding-top: 1em;">
+            Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.  
+            If you have any concerns, please consult a certified dermatologist.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
         
@@ -386,9 +406,6 @@ if st.session_state.stage == 3:
             st.write("No subtype predictions exceeded the 0.01 probability threshold.")
         st.caption("Only predictions with probability greater than 0.01 are shown.")
 
-    else:
-        st.warning("No cropped image found.")
-
         st.markdown("---")
         st.markdown(
             """
@@ -399,3 +416,6 @@ if st.session_state.stage == 3:
             """,
             unsafe_allow_html=True
         )
+
+    else:
+        st.warning("No cropped image found.")
