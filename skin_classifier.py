@@ -13,7 +13,7 @@ class DualHeadResNet(nn.Module):
         num_ftrs = self.base.fc.in_features
         self.base.fc = nn.Identity()
 
-        self.binary_head = nn.Sequential(
+        self.binary_head = nn.Sequential( 
             nn.Linear(num_ftrs, 128),
             nn.ReLU(),
             nn.Dropout(0.3),

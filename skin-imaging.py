@@ -170,7 +170,7 @@ if __name__ == "__main__":
     val_size = int(0.2 * len(dataset))
     train_size = len(dataset) - val_size
     train_data, val_data = random_split(dataset, [train_size, val_size])
-
+    
     train_loader = DataLoader(train_data, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
     val_loader = DataLoader(val_data, batch_size=64, shuffle=False, num_workers=4, pin_memory=True)
 

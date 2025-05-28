@@ -84,8 +84,8 @@ else:
     proba = multi_model.predict_proba(Xm_test)
 
     top5_preds = np.argsort(proba, axis=1)[:, -5:]  # Get indices of top 5 classes
-    class_labels = multi_model.classes_
-    top5_labels = class_labels[top5_preds]
+    #class_labels = multi_model.classes_
+    top5_labels = multi_model.classes_[top5_preds]
 
     # Check if true label is in top 5
     correct_top5 = [true_label in pred_row for true_label, pred_row in zip(ym_test, top5_labels)]
@@ -105,3 +105,4 @@ else:
             st.write("Top-5 predicted diseases (best to worst):")
             for rank, pred in enumerate(top5, start=1):
                 st.write(f"{rank}. {pred}")
+
