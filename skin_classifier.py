@@ -115,6 +115,23 @@ def create_rule_of_thirds_overlay(size=224, line_color=(255, 0, 0, 100), line_wi
 
     return overlay
 
+# === Highlight function for coloring full rows with transparency ===
+def highlight_probability_row(row):
+    prob = float(row['Probability'])
+    if prob > 0.95:
+        color = 'rgba(46, 125, 50, 0.2)'  # dark green, 50% transparent
+    elif prob > 0.80:
+        color = 'rgba(129, 199, 132, 0.2)'  # light green
+    elif prob > 0.50:
+        color = 'rgba(255, 241, 118, 0.2)'  # yellow
+    elif prob > 0.20:
+        color = 'rgba(255, 183, 77, 0.2)'  # orange
+    else:
+        color = 'rgba(229, 115, 115, 0.2)'  # red
+
+    # Apply to all columns in the row
+    return [f'background-color: {color}'] * len(row)
+
 # === Main Streamlit app ===
 st.title("Skin Lesion Classifier")
 st.write("Upload an image of a skin lesion to classify it as benign or malignant and identify the subtype.")
@@ -156,9 +173,6 @@ if uploaded_file:
         st.image("images/crop3.png", use_container_width=True)
 
     # Side-by-side cropping and preview with 2:1 ratio columns
-    col_crop1, col_crop2, col_preview = st.columns([1, 1, 1])  # We'll merge first two later
-    # Instead of three columns, combine col_crop1 and col_crop2 into one container using `beta_container` or just create columns with [2,1]
-    # So final:
     col_crop, col_preview = st.columns([2, 1])
 
     with col_crop:
@@ -200,12 +214,19 @@ if uploaded_file:
     st.subheader("Prediction")
     st.write(f"**Prediction:** {main_pred_class}")
 
-    # Probability table for benign/malignant
+    # Probability table for benign/malignant with row coloring
+    # Probability table for benign/malignant with row coloring and sorted by probability descending
     class_df = pd.DataFrame([
-        {"Prediction": "Benign", "Probability": f"{prob_benign:.4f}"},
-        {"Prediction": "Malignant", "Probability": f"{prob_malignant:.4f}"}
+        {"Prediction": "Benign", "Probability": prob_benign},
+        {"Prediction": "Malignant", "Probability": prob_malignant}
     ])
-    st.dataframe(class_df, hide_index=True, use_container_width=True)
+    class_df = class_df.sort_values(by="Probability", ascending=False).reset_index(drop=True)
+
+    styled_class_df = class_df.style.format({"Probability": "{:.4f}"}).apply(
+        highlight_probability_row, axis=1
+    )
+    st.dataframe(styled_class_df, hide_index=True, use_container_width=True)
+
 
     # === Top Subtype Predictions ===
     st.subheader("Subtype Predictions")
@@ -222,11 +243,11 @@ if uploaded_file:
     visible_preds = sorted(visible_preds, key=lambda x: x["Probability"], reverse=True)
 
     if visible_preds:
-        # Format probabilities as strings for display
-        for pred in visible_preds:
-            pred["Probability"] = f"{pred['Probability']:.4f}"
         subtype_df = pd.DataFrame(visible_preds)
-        st.dataframe(subtype_df, hide_index=True, use_container_width=True)
+        styled_subtype_df = subtype_df.style.format({"Probability": "{:.4f}"}).apply(
+            highlight_probability_row, axis=1
+        )
+        st.dataframe(styled_subtype_df, hide_index=True, use_container_width=True)
     else:
         st.write("No subtype predictions exceeded the 0.01 probability threshold.")
     st.caption("Only predictions with probability greater than 0.01 are shown.")
