@@ -198,14 +198,14 @@ if uploaded_file:
     # Display main prediction
     main_pred_class = "Malignant" if prob_malignant > prob_benign else "Benign"
     st.subheader("Prediction")
-    st.write(f"**Prediction:** {main_pred_class}")
 
-    def highlightPrediction(row):
-        if row["Prediction"] == "Benign":
-            return ['background-color: #d4edda; color: #155724'] * len(row)
-        elif row["Prediction"] == "Malignant":
-            return ['background-color: #f8d7da; color: #721c24'] * len(row)
-        return ['']* len(row)
+    def highlightPrediction(row, highlight_label):
+        if row["Prediction"] == highlight_label:
+            if highlight_label == "Benign":
+                return ['background-color: #d4edda; color: #155724'] * len(row)
+            elif highlight_label == "Malignant":
+                return ['background-color: #f8d7da; color: #721c24'] * len(row)
+        return [''] * len(row)
     
     def highlightSubtype(row):
         prob = float(row["Probability"])
@@ -218,13 +218,21 @@ if uploaded_file:
             return ['background-color: #d4edda; color: #155724'] * len(row)  # Greenish for lower probs
 
     
-    # Probability table for benign/malignant
-    class_df = pd.DataFrame([
-        {"Prediction": "Benign", "Probability": prob_benign},
-        {"Prediction": "Malignant", "Probability": prob_malignant}
-    ])
-    styled_df = class_df.style.apply(highlightPrediction, axis=1).format({"Probability": "{:.4f}"})
-    st.dataframe(styled_df, hide_index=True, use_container_width=True)
+    highlight_label = "Benign" if prob_benign > prob_malignant else "Malignant"
+
+
+    benign_advice_md = "This means it is not cancerous and completely normal! Make sure to monitor changes over time, though. If you notice changes in size, shape, or color; or if growth becomes painful or starts bleeding, schedule a consultation with a dermatologist immediately."
+    malignant_advice_md = "This means it may be cancerous and harmful. Consult a dermatolagist for a clinical skin examination or dermoscopy as soon as possible. Early treatment is often very effective, and the sooner it is caugth, the better the outcome."
+
+    if main_pred_class == "Benign":
+        st.success("There is a " + str(round(prob_benign*100)) + "% chance that the given lesion is **benign** based on model prediction.")
+        st.markdown(benign_advice_md)
+    else:
+        st.error("There is a " + str(round(prob_malignant*100)) + "% chance that the given lesion is **malignant** based on model prediction.")
+        st.markdown(malignant_advice_md)
+
+    st.caption("⚠️ This tool does not replace professional medical evaluation.")
+
 
     # === Top Subtype Predictions ===
     st.subheader("Subtype Predictions")
