@@ -133,10 +133,12 @@ def highlight_probability_row(row):
     return [f'background-color: {color}'] * len(row)
 
 # === Main Streamlit app ===
-st.title("Skin Lesion Classifier")
-st.write("Upload an image of a skin lesion to classify it as benign or malignant and identify the subtype.")
+logo_img = Image.open("images/skinsight_logo.png")
+st.image(logo_img, width=300)
+st.subheader("AI-Powered Dermatology Insights")
+st.write("Upload an image of a skin mark or mole to classify it as benign or malignant and identify the subtype.")
 
-with st.expander("📘 Learn about skin cancer: The ABCDEs of melanoma"):
+with st.expander("Learn about skin cancer: The ABCDEs of melanoma"):
     st.markdown("### How to Recognize Signs of Melanoma")
     st.markdown("If you notice any of these signs, it's important to consult a healthcare provider.")
     image = Image.open("images/abcde_chart.png")
@@ -150,7 +152,7 @@ if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Uploaded Image", use_container_width=True)
 
-    st.markdown("### Step 1: Crop the image")
+    st.markdown("### Crop the image")
     st.write(
         """
         **Guidelines for cropping:**
