@@ -19,7 +19,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# === Model Definition ===
+# model
 class DualHeadResNet(nn.Module):
     def __init__(self, num_subtypes):
         super().__init__()
@@ -48,7 +48,7 @@ class DualHeadResNet(nn.Module):
         subtype_out = self.subtype_head(features)
         return binary_out, subtype_out
 
-# === Hardcoded subtype list ===
+# subtypes and printable names
 HARDCODED_SUBTYPES = [
     "malignant_soft-tissue-proliferations",
     "malignant_adnexal-epithelial-proliferations",
@@ -95,7 +95,7 @@ def load_model_and_subtypes(model_path="dual_head_skin_model.pth"):
     idx_to_subtype = {v: k for k, v in subtype_to_idx.items()}
     return model, idx_to_subtype
 
-# === Image preprocessing ===
+# image preprocessing for model
 def preprocess_image(image):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -105,7 +105,7 @@ def preprocess_image(image):
     ])
     return transform(image).unsqueeze(0)
 
-# === Overlay for crop preview ===
+# crop preview overlay
 def create_rule_of_thirds_overlay(size=224, line_color=(255, 0, 0, 100), line_width=2):
     overlay = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
@@ -120,27 +120,27 @@ def create_rule_of_thirds_overlay(size=224, line_color=(255, 0, 0, 100), line_wi
 
     return overlay
 
-# === Highlighting Functions ===
+#highlight
 def highlight_multiclass_prediction(row):
     subtype = row['Subtype'].lower()
     prob = float(row['Probability'])
 
     if 'malignant' in subtype:
         if prob > 0.9:
-            color = 'rgba(198, 40, 40, 0.3)'  # dark red
+            color = 'rgba(198, 40, 40, 0.3)' #dark red
         elif prob > 0.3:
-            color = 'rgba(239, 83, 80, 0.3)'  # light red
+            color = 'rgba(239, 83, 80, 0.3)'  #light red
         elif prob > 0.1:
-            color = 'rgba(255, 160, 0, 0.3)'  # orange
+            color = 'rgba(255, 160, 0, 0.3)' #orange
         else:
             color = ''
     elif 'benign' in subtype:
         if prob > 0.9:
-            color = 'rgba(27, 94, 32, 0.3)'  # dark green
+            color = 'rgba(27, 94, 32, 0.3)'  #dark green
         elif prob > 0.3:
-            color = 'rgba(102, 187, 106, 0.3)'  # light green
+            color = 'rgba(102, 187, 106, 0.3)'  #light green
         elif prob > 0.1:
-            color = 'rgba(255, 241, 118, 0.3)'  # yellow
+            color = 'rgba(255, 241, 118, 0.3)' #yellow
         else:
             color = ''
     else:
@@ -175,7 +175,12 @@ def highlight_binary_prediction(row):
         color = ''
     return [f'background-color: {color}' if color else '' for _ in row]
 
-# === Main App ===
+
+
+
+
+# MAIN APP STARTS HERE
+
 logo_img = Image.open("images/skinsight_logo.png")
 st.image(logo_img, width=700)
 st.write("Skin cancer is the most common cancer in the United States. Early detection can save your life.")
@@ -250,24 +255,42 @@ if uploaded_file:
     # Main binary classification
     main_pred_class = "Malignant" if prob_malignant > prob_benign else "Benign"
     st.markdown("## Prediction")
-    st.markdown(f"#### **Prediction:** {main_pred_class}")
 
-    # === Display binary class table ===
-    class_df = pd.DataFrame([
-        {"Prediction": "Benign", "Probability": prob_benign},
-        {"Prediction": "Malignant", "Probability": prob_malignant}
-    ])
-    class_df = class_df.sort_values(by="Probability", ascending=False).reset_index(drop=True)
+    #binary class table
+    color = "rgba(27, 94, 32, 0.7)" if main_pred_class == "Benign" else "rgba(198, 40, 40, 0.7)"
+    prob_value = prob_benign if main_pred_class == "Benign" else prob_malignant
 
-    styled_class_df = class_df.style.format({"Probability": "{:.4f}"}).apply(
-        highlight_binary_prediction, axis=1
+    st.markdown(
+        f"""
+        <div style="
+            background-color: {color};
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            width: 60%;
+            margin: 10px auto;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        ">
+            Prediction: {main_pred_class}
+            <div style="font-size: 18px; font-weight: normal; margin-top: 10px;">
+                Probability: {prob_value:.4f}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
-    st.markdown("##### Benign vs Malignant Probability")
-    st.dataframe(styled_class_df, hide_index=True, use_container_width=True)
+    if main_pred_class == "Benign":
+        advice = "This means it is likely to be not cancerous and completely normal! However, make sure to monitor changes over time. If you notice changes in size, shape, or color; or if growth becomes painful or starts bleeding, schedule a consultation with a dermatologist immediately. Please remember that this tool does not replace professional medical evaluation."
+    else:
+        advice = "This means it may be cancerous and harmful. It's recommended that you consult a dermatolagist for a clinical skin examination or dermoscopy as soon as possible. Early treatment is often very effective, and the sooner it is caught, the better the outcome."
+    st.write(advice)
 
-    # === Display Subtype Predictions ===
-    st.markdown("##### Subtype Predictions")
+    # subtypes
+    st.markdown("### Subtype Predictions")
     visible_preds = []
     for idx, prob in enumerate(subtype_probs):
         if prob.item() > 0.01:
