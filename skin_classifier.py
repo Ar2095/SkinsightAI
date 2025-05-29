@@ -23,6 +23,34 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+st.markdown("""
+    <style>
+    /* Force all text white, regardless of Streamlit theme */
+    html, body, [class*="css"] {
+        color: white !important;
+    }
+
+    /* Override specific element types */
+    h1, h2, h3, h4, h5, h6, p, div, span, label, li, a {
+        color: white !important;
+    }
+
+    /* Also style sidebar text */
+    .css-1d391kg, .css-1v3fvcr, .css-qrbaxs {
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+st.markdown("""
+    <style>
+    .disclaimer {
+        color: #bbbbbb !important;  /* Light gray */
+        font-size: 14px;
+        margin-top: 20px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 
 
 st.markdown('<div id="top"></div>', unsafe_allow_html=True)
@@ -152,19 +180,15 @@ def highlight_multiclass_prediction(row):
     if 'malignant' in subtype:
         if prob > 0.9:
             color = 'rgba(198, 40, 40, 0.3)' #dark red
-        elif prob > 0.3:
+        elif prob > 0.5:
             color = 'rgba(239, 83, 80, 0.3)'  #light red
-        elif prob > 0.1:
-            color = 'rgba(255, 160, 0, 0.3)' #orange
         else:
             color = ''
     elif 'benign' in subtype:
         if prob > 0.9:
             color = 'rgba(27, 94, 32, 0.3)'  #dark green
-        elif prob > 0.3:
+        elif prob > 0.5:
             color = 'rgba(102, 187, 106, 0.3)'  #light green
-        elif prob > 0.1:
-            color = 'rgba(255, 241, 118, 0.3)' #yellow
         else:
             color = ''
     else:
@@ -262,15 +286,12 @@ if st.session_state.stage == 1:
             st.rerun()
             scroll_to_anchor()
     st.markdown("---")
-    st.markdown(
-            """
-            <div style="font-size: 0.9em; color: gray; padding-top: 1em;">
-            Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.  
+    st.markdown("""
+    <div class="disclaimer">
+        Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.  
             If you have any concerns, please consult a certified dermatologist.
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    </div>
+""", unsafe_allow_html=True)
 
 
 #CROP
@@ -343,15 +364,12 @@ if st.session_state.stage == 2:
             scroll_to_anchor()
 
         st.markdown("---")
-        st.markdown(
-            """
-            <div style="font-size: 0.9em; color: gray; padding-top: 1em;">
-            Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.  
+        st.markdown("""
+    <div class="disclaimer">
+        Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.  
             If you have any concerns, please consult a certified dermatologist.
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    </div>
+""", unsafe_allow_html=True)
 
 
         
@@ -437,15 +455,12 @@ if st.session_state.stage == 3:
             st.write("No subtype predictions exceeded the 0.01 probability threshold.")
 
         st.markdown("---")
-        st.markdown(
-            """
-            <div style="font-size: 0.9em; color: gray; padding-top: 1em;">
-            Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.  
+        st.markdown("""
+    <div class="disclaimer">
+        Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.  
             If you have any concerns, please consult a certified dermatologist.
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    </div>
+""", unsafe_allow_html=True)
 
     else:
         st.warning("No cropped image found.")
