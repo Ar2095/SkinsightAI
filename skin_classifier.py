@@ -6,8 +6,39 @@ from PIL import Image, ImageDraw
 import torch.nn.functional as F
 from streamlit_cropper import st_cropper
 import pandas as pd
+import streamlit.components.v1 as components
 
-# === Model Definition ===
+
+
+
+#background css :)
+st.markdown(
+    """
+    <style>
+    /* Change the entire app background */
+    .stApp {
+        background-color: #2e0118;  
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+st.markdown('<div id="top"></div>', unsafe_allow_html=True)
+
+def scroll_to_anchor(anchor_id="top"):
+    components.html(f"""
+        <script>
+        const el = document.getElementById('{anchor_id}');
+        if (el) {{
+            el.scrollIntoView({{behavior: 'smooth'}});
+        }}
+        </script>
+    """, height=0)
+
+
+# model
 class DualHeadResNet(nn.Module):
     def __init__(self, num_subtypes):
         super().__init__()
@@ -36,7 +67,7 @@ class DualHeadResNet(nn.Module):
         subtype_out = self.subtype_head(features)
         return binary_out, subtype_out
 
-# === Hardcoded subtype list ===
+# subtypes and printable names
 HARDCODED_SUBTYPES = [
     "malignant_soft-tissue-proliferations",
     "malignant_adnexal-epithelial-proliferations",
@@ -76,28 +107,29 @@ def load_model_and_subtypes(model_path="dual_head_skin_model.pth"):
     else:
         model_state = checkpoint
 
-    num_subtypes = len(subtype_to_idx)
-    if num_subtypes == 0:
-        raise ValueError("No subtypes found. Check your hardcoded list.")
-
-    model = DualHeadResNet(num_subtypes=num_subtypes)
+    model = DualHeadResNet(num_subtypes=len(subtype_to_idx))
     model.load_state_dict(model_state)
     model.eval()
 
     idx_to_subtype = {v: k for k, v in subtype_to_idx.items()}
     return model, idx_to_subtype
 
-# === Image preprocessing ===
-def preprocess_image(image):
+# image preprocessing for model
+def preprocess_image(image: Image.Image) -> torch.Tensor:
+    # Ensure the image is RGB (3 channels)
+    if image.mode != "RGB":
+        image = image.convert("RGB")
+
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406],
-                             [0.229, 0.224, 0.225])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225])
     ])
-    return transform(image).unsqueeze(0)
+    return transform(image).unsqueeze(0)  # Add batch dimension
 
-# === Create 3x3 grid overlay ===
+
+# crop preview overlay
 def create_rule_of_thirds_overlay(size=224, line_color=(255, 0, 0, 100), line_width=2):
     overlay = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
@@ -105,165 +137,315 @@ def create_rule_of_thirds_overlay(size=224, line_color=(255, 0, 0, 100), line_wi
     one_third = size // 3
     two_third = 2 * one_third
 
-    # Vertical lines
     draw.line([(one_third, 0), (one_third, size)], fill=line_color, width=line_width)
     draw.line([(two_third, 0), (two_third, size)], fill=line_color, width=line_width)
-
-    # Horizontal lines
     draw.line([(0, one_third), (size, one_third)], fill=line_color, width=line_width)
     draw.line([(0, two_third), (size, two_third)], fill=line_color, width=line_width)
 
     return overlay
 
-# === Main Streamlit app ===
-st.title("Skin Lesion Classifier")
-st.write("Upload an image of a skin lesion to classify it as benign or malignant and identify the subtype.")
+#highlight
+def highlight_multiclass_prediction(row):
+    subtype = row['Subtype'].lower()
+    prob = float(row['Probability'])
 
-with st.expander("📘 Learn about skin cancer: The ABCDEs of melanoma"):
-    st.markdown("### How to Recognize Signs of Melanoma")
-    st.markdown("If you notice any of these signs, it's important to consult a healthcare provider.")
-    image = Image.open("images/abcde_chart.png")
-    st.image(image, use_container_width=True)
-
-model, idx_to_subtype = load_model_and_subtypes()
-
-uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
-
-if uploaded_file:
-    image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Uploaded Image", use_container_width=True)
-
-    st.markdown("### Step 1: Crop the image")
-    st.write(
-        """
-        **Guidelines for cropping:**
-
-        - Adjust the crop box so the skin lesion is centered within the square.
-        - Make sure the lesion is clearly visible and occupies a good portion of the box,
-          but avoid zooming in too closely.
-        - The crop area should be square to prevent distortion.
-        - Try to exclude unnecessary background to improve model accuracy.
-        """
-    )
-
-    # Display good crop examples
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.image("images/crop1.png", use_container_width=True)
-    with col2:
-        st.image("images/crop2.png", use_container_width=True)
-    with col3:
-        st.image("images/crop3.png", use_container_width=True)
-
-    # Side-by-side cropping and preview with 2:1 ratio columns
-    col_crop1, col_crop2, col_preview = st.columns([1, 1, 1])  # We'll merge first two later
-    # Instead of three columns, combine col_crop1 and col_crop2 into one container using `beta_container` or just create columns with [2,1]
-    # So final:
-    col_crop, col_preview = st.columns([2, 1])
-
-    with col_crop:
-        st.markdown("#### Crop the Lesion")
-        # Resize uploaded image to fixed width for cropper
-        fixed_width = 450
-        aspect_ratio = image.width / image.height
-        new_height = int(fixed_width / aspect_ratio)
-        resized_for_cropper = image.resize((fixed_width, new_height))
-
-        cropped_img = st_cropper(
-            resized_for_cropper,
-            aspect_ratio=(1, 1),
-            box_color='#FF4B4B',
-            return_type='image',
-            realtime_update=True
-        )
-
-    with col_preview:
-        st.markdown("#### Preview with 3x3 Grid")
-        cropped_img_resized = cropped_img.resize((224, 224))
-        overlay = create_rule_of_thirds_overlay(size=224)
-        img_with_grid = Image.alpha_composite(cropped_img_resized.convert("RGBA"), overlay)
-        st.image(img_with_grid, caption="Cropped Image with 3x3 Grid", use_container_width=True)
-
-    # === Prediction ===
-    input_tensor = preprocess_image(cropped_img_resized)
-
-    with torch.no_grad():
-        bin_out, subtype_out = model(input_tensor)
-
-        prob_malignant = torch.sigmoid(bin_out).item()
-        prob_benign = 1 - prob_malignant
-
-        subtype_probs = F.softmax(subtype_out, dim=1).squeeze(0)
-
-    # Display main prediction
-    main_pred_class = "Malignant" if prob_malignant > prob_benign else "Benign"
-    st.subheader("Prediction")
-
-    def highlightPrediction(row, highlight_label):
-        if row["Prediction"] == highlight_label:
-            if highlight_label == "Benign":
-                return ['background-color: #d4edda; color: #155724'] * len(row)
-            elif highlight_label == "Malignant":
-                return ['background-color: #f8d7da; color: #721c24'] * len(row)
-        return [''] * len(row)
-    
-    def highlightSubtype(row):
-        prob = float(row["Probability"])
-        # Adjust thresholds or colors as needed
-        if prob > 0.5:
-            return ['background-color: #f8d7da; color: #721c24'] * len(row)  # Reddish for higher probs
+    if 'malignant' in subtype:
+        if prob > 0.9:
+            color = 'rgba(198, 40, 40, 0.3)' #dark red
+        elif prob > 0.3:
+            color = 'rgba(239, 83, 80, 0.3)'  #light red
         elif prob > 0.1:
-            return ['background-color: #fff3cd; color: #856404'] * len(row)  # Yellow for mid-range
+            color = 'rgba(255, 160, 0, 0.3)' #orange
         else:
-            return ['background-color: #d4edda; color: #155724'] * len(row)  # Greenish for lower probs
-
-    
-    highlight_label = "Benign" if prob_benign > prob_malignant else "Malignant"
-
-
-    benign_advice_md = "This means it is not cancerous and completely normal! Make sure to monitor changes over time, though. If you notice changes in size, shape, or color; or if growth becomes painful or starts bleeding, schedule a consultation with a dermatologist immediately."
-    malignant_advice_md = "This means it may be cancerous and harmful. Consult a dermatolagist for a clinical skin examination or dermoscopy as soon as possible. Early treatment is often very effective, and the sooner it is caugth, the better the outcome."
-
-    if main_pred_class == "Benign":
-        st.success("There is a " + str(round(prob_benign*100)) + "% chance that the given lesion is **benign** based on model prediction.")
-        st.markdown(benign_advice_md)
+            color = ''
+    elif 'benign' in subtype:
+        if prob > 0.9:
+            color = 'rgba(27, 94, 32, 0.3)'  #dark green
+        elif prob > 0.3:
+            color = 'rgba(102, 187, 106, 0.3)'  #light green
+        elif prob > 0.1:
+            color = 'rgba(255, 241, 118, 0.3)' #yellow
+        else:
+            color = ''
     else:
-        st.error("There is a " + str(round(prob_malignant*100)) + "% chance that the given lesion is **malignant** based on model prediction.")
-        st.markdown(malignant_advice_md)
+        color = ''
 
-    st.caption("⚠️ This tool does not replace professional medical evaluation.")
+    return [f'background-color: {color}' if color else '' for _ in row]
 
 
-    # === Top Subtype Predictions ===
-    st.subheader("Subtype Predictions")
+def highlight_binary_prediction(row):
+    pred = row['Prediction']
+    prob = float(row['Probability'])
 
-    # Create list of predictions over 1% probability
-    visible_preds = []
-    for idx, prob in enumerate(subtype_probs):
-        if prob.item() > 0.01:
-            raw_name = idx_to_subtype.get(idx, "Unknown")
-            pretty_name = PRETTY_SUBTYPE_NAMES.get(raw_name, raw_name)
-            visible_preds.append({"Subtype": pretty_name, "Probability": prob.item()})
-
-    # Sort visible_preds by probability descending
-    visible_preds = sorted(visible_preds, key=lambda x: x["Probability"], reverse=True)
-
-    if visible_preds:
-        subtype_df = pd.DataFrame(visible_preds)
-        subtype_styled_df = subtype_df.style.apply(highlightSubtype, axis = 1).format({"Probability": "{:.4f}"})
-        st.dataframe(subtype_styled_df, hide_index=True, use_container_width=True)
+    if pred == 'Malignant':
+        if prob > 0.9:
+            color = 'rgba(198, 40, 40, 0.3)'
+        elif prob > 0.75:
+            color = 'rgba(239, 83, 80, 0.3)'
+        elif prob > 0.5:
+            color = 'rgba(255, 160, 0, 0.3)'
+        else:
+            color = ''
+    elif pred == 'Benign':
+        if prob > 0.9:
+            color = 'rgba(27, 94, 32, 0.3)'
+        elif prob > 0.75:
+            color = 'rgba(102, 187, 106, 0.3)'
+        elif prob > 0.5:
+            color = 'rgba(255, 241, 118, 0.3)'
+        else:
+            color = ''
     else:
-        st.write("No subtype predictions exceeded the 0.01 probability threshold.")
-        st.caption("Only predictions with probability greater than 0.01 are shown.")
+        color = ''
+    return [f'background-color: {color}' if color else '' for _ in row]
 
 
+
+
+
+# MAIN APP STARTS HERE
+
+if "model" not in st.session_state or "idx_to_subtype" not in st.session_state:
+    model, idx_to_subtype = load_model_and_subtypes()
+    st.session_state.model = model
+    st.session_state.idx_to_subtype = idx_to_subtype
+
+
+if "stage" not in st.session_state:
+    st.session_state.stage = 1
+if "uploaded_file" not in st.session_state:
+    st.session_state.uploaded_file = None
+if "cropped_img" not in st.session_state:
+    st.session_state.cropped_img = None
+
+if st.session_state.stage == 1:
+    logo_img = Image.open("images/skinsight_logo.png")
+    st.image(logo_img, width=700)
+    st.markdown("---")
+    st.write("Skin cancer is the most common cancer in the United States. Early detection can save your life.")
+    with st.expander("📕 Learn more about skin cancer: The ABCDE of Melanoma"):
+        st.markdown("### How to Recognize Signs of Melanoma")
+        st.image("images/abcde_chart.png", use_container_width=True)
+    st.markdown("---")
+    st.markdown("## Image Upload")
+    st.write("Upload an image of a skin mark to classify it as benign or malignant and identify the subtype.")
+
+
+
+    model, idx_to_subtype = load_model_and_subtypes()
+
+    uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"], label_visibility="hidden")
+
+    if uploaded_file:
+        image = Image.open(uploaded_file).convert("RGB")
+        st.image(image, caption="Uploaded Image", use_container_width=True)
+        st.session_state.uploaded_file = uploaded_file
+        st.markdown("""
+            <style>
+            div.stButton > button:first-child {
+                background-color: #2e7d32;
+                color: white;
+                border-radius: 8px;
+                padding: 0.6em 1.2em;
+                border: none;
+            }
+
+            div.stButton > button:first-child:hover {
+                background-color: #1b5e20;
+                color: white;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        if st.button("Continue"):
+            st.session_state.stage = 2
+            st.session_state.scroll_to_top = True
+            st.rerun()
+            scroll_to_anchor()
     st.markdown("---")
     st.markdown(
-        """
-        <div style="font-size: 0.9em; color: gray; padding-top: 1em;">
-        Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.  
-        If you have any concerns, please consult a certified dermatologist.
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+            """
+            <div style="font-size: 0.9em; color: gray; padding-top: 1em;">
+            Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.  
+            If you have any concerns, please consult a certified dermatologist.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+#CROP
+if st.session_state.stage == 2:
+    logo_img = Image.open("images/skinsight_logo.png")
+    st.image(logo_img, width=700)
+    st.markdown("---")
+    st.markdown("## Crop the Image")
+    if st.session_state.uploaded_file is not None:
+        image = Image.open(st.session_state.uploaded_file)
+        #st.image(image, caption="Original Image", use_container_width=True)
+        st.markdown("##### Guidelines for cropping:")
+        st.write(
+            """
+            - Adjust the bounding box so the skin mark is centered within the square.
+            - Make sure the mark is clearly visible, but avoid zooming in too closely.
+            - Try to exclude unnecessary background to improve model accuracy.
+            """
+        )
+        st.write("""##### **Examples of good crops:**""")
+
+        col1, col2, col3 = st.columns(3)
+        with col1: st.image("images/crop1.png", use_container_width=True)
+        with col2: st.image("images/crop2.png", use_container_width=True)
+        with col3: st.image("images/crop3.png", use_container_width=True)
+
+        st.markdown("---")
+        col_crop, col_preview = st.columns([2, 1])
+        with col_crop:
+            st.markdown("#### Crop Using the Bounding Box")
+            fixed_width = 450
+            aspect_ratio = image.width / image.height
+            new_height = int(fixed_width / aspect_ratio)
+            resized_for_cropper = image.resize((fixed_width, new_height))
+
+            cropped_img = st_cropper(
+                resized_for_cropper,
+                aspect_ratio=(1, 1),
+                box_color='#FF4B4B',
+                return_type='image',
+                realtime_update=True
+            )
+
+        with col_preview:
+            st.markdown("#### Preview with Grid")
+            cropped_img_resized = cropped_img.resize((224, 224))
+            overlay = create_rule_of_thirds_overlay(size=224)
+            img_with_grid = Image.alpha_composite(cropped_img_resized.convert("RGBA"), overlay)
+            st.image(img_with_grid, use_container_width=True)
+        st.markdown("""
+            <style>
+            div.stButton > button:first-child {
+                background-color: #2e7d32;
+                color: white;
+                border-radius: 8px;
+                padding: 0.6em 1.2em;
+                border: none;
+            }
+
+            div.stButton > button:first-child:hover {
+                background-color: #1b5e20;
+                color: white;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        if st.button("Predict"):
+            st.session_state.cropped_img = cropped_img_resized  # just pass through
+            st.session_state.stage = 3
+            st.rerun()
+            scroll_to_anchor()
+
+        st.markdown("---")
+        st.markdown(
+            """
+            <div style="font-size: 0.9em; color: gray; padding-top: 1em;">
+            Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.  
+            If you have any concerns, please consult a certified dermatologist.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+        
+    else:
+        st.warning("Please upload an image first.")
+        st.button("Back to Upload", on_click=lambda: setattr(st.session_state, "stage", 1))
+    
+
+#PREDICT
+if st.session_state.stage == 3:
+    logo_img = Image.open("images/skinsight_logo.png")
+    st.image(logo_img, width=700)
+    st.markdown("---")
+    model = st.session_state.model
+    idx_to_subtype = st.session_state.idx_to_subtype
+
+    if st.session_state.cropped_img is not None:
+        input_tensor = preprocess_image(st.session_state.cropped_img)
+
+        with torch.no_grad():
+            bin_out, subtype_out = model(input_tensor)
+
+            prob_malignant = torch.sigmoid(bin_out).item()
+            prob_benign = 1 - prob_malignant
+
+            subtype_probs = F.softmax(subtype_out, dim=1).squeeze(0)
+
+            
+
+        main_pred_class = "Malignant" if prob_malignant > prob_benign else "Benign"
+        st.markdown("## Prediction")
+
+        color = "rgba(27, 94, 32, 0.7)" if main_pred_class == "Benign" else "rgba(198, 40, 40, 0.7)"
+        prob_value = prob_benign if main_pred_class == "Benign" else prob_malignant
+
+        st.markdown(
+            f"""
+            <div style="
+                background-color: {color};
+                color: white;
+                padding: 10px;
+                border-radius: 10px;
+                font-size: 24px;
+                font-weight: bold;
+                text-align: center;
+                width: 60%;
+                margin: 10px auto;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            ">
+                Prediction: {main_pred_class}
+                <div style="font-size: 18px; font-weight: normal; margin-top: 10px;">
+                    Probability: {prob_value:.4f}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if main_pred_class == "Benign":
+            advice = "This means it is likely to be not cancerous and completely normal! However, make sure to monitor changes over time. If you notice changes in size, shape, or color; or if growth becomes painful or starts bleeding, schedule a consultation with a dermatologist immediately. Please remember that this tool does not replace professional medical evaluation."
+        else:
+            advice = "This means it may be cancerous and harmful. It's recommended that you consult a dermatolagist for a clinical skin examination or dermoscopy as soon as possible. Early treatment is often very effective, and the sooner it is caught, the better the outcome."
+        st.write(advice)
+
+        st.markdown("### Top Subtype Predictions")
+        visible_preds = []
+        for idx, prob in enumerate(subtype_probs):
+            if prob.item() > 0.01:
+                raw_name = idx_to_subtype.get(idx, "Unknown")
+                pretty_name = PRETTY_SUBTYPE_NAMES.get(raw_name, raw_name)
+                visible_preds.append({"Subtype": pretty_name, "Probability": prob.item()})
+
+        visible_preds = sorted(visible_preds, key=lambda x: x["Probability"], reverse=True)
+
+        if visible_preds:
+            subtype_df = pd.DataFrame(visible_preds)
+            styled_subtype_df = subtype_df.style.format({"Probability": "{:.4f}"}).apply(
+                highlight_multiclass_prediction, axis=1
+            )
+
+            st.dataframe(styled_subtype_df, hide_index=True, use_container_width=True)
+        else:
+            st.write("No subtype predictions exceeded the 0.01 probability threshold.")
+
+        st.markdown("---")
+        st.markdown(
+            """
+            <div style="font-size: 0.9em; color: gray; padding-top: 1em;">
+            Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.  
+            If you have any concerns, please consult a certified dermatologist.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    else:
+        st.warning("No cropped image found.")

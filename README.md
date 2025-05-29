@@ -1,2 +1,2 @@
 # AIMedicalApp
-App that takes a user’s symptoms or an image of a condition and outputs possible causes/conditions/treatments
+This is an app that allows users to upload images of skin marks or moles. It will classify these marks as benign or malignant, and provide predictions of the subtype.
