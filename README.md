@@ -1,2 +1,2 @@
-# AIMedicalApp
-This is an app that allows users to upload images of skin marks or moles. It will classify these marks as benign or malignant, and provide predictions of the subtype.
+# Skinsight
+Dermatology app using a ResNet-18 model trained on the ISIC dataset to classify various skin marks or moles from uploaded user images. It will classify these marks as benign or malignant, and provide predictions of the subtype.
