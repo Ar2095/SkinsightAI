@@ -12,7 +12,6 @@ import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# === Custom Dataset ===
 class SkinDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = Path(root_dir)
@@ -20,14 +19,7 @@ class SkinDataset(Dataset):
         self.samples = []
         self.subtype_to_idx = {}
 
-        # Adjusted folder traversal for your dataset structure:
-        # dataset/
-        #   benign/
-        #     benign-xxx/
-        #     benign-yyy/
-        #   malignant/
-        #     malignant-xxx/
-        #     malignant-yyy/
+
         for binary_class_dir in self.root_dir.glob("*"):
             if not binary_class_dir.is_dir():
                 continue
@@ -47,6 +39,7 @@ class SkinDataset(Dataset):
 
         self.idx_to_subtype = {v: k for k, v in self.subtype_to_idx.items()}
 
+    
     def __len__(self):
         return len(self.samples)
 
@@ -57,7 +50,7 @@ class SkinDataset(Dataset):
             image = self.transform(image)
         return image, torch.tensor(binary_label, dtype=torch.float32), torch.tensor(subtype_label, dtype=torch.long)
 
-# === Transforms ===
+# transforms
 train_transforms = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.RandomHorizontalFlip(),
@@ -67,7 +60,8 @@ train_transforms = transforms.Compose([
                          [0.229, 0.224, 0.225])
 ])
 
-# === Model with Two Heads (ResNet18) ===
+# resnet-18 :D
+
 class DualHeadResNet(nn.Module):
     def __init__(self, num_subtypes):
         super().__init__()
@@ -96,11 +90,11 @@ class DualHeadResNet(nn.Module):
         subtype_out = self.subtype_head(features)
         return binary_out, subtype_out
 
-# === Losses & Optimizer ===
+# optimizer
 bce_loss = nn.BCEWithLogitsLoss()
 ce_loss = nn.CrossEntropyLoss()
 
-# === Training ===
+# train
 def train(model, train_loader, optimizer, epochs=10):
     for epoch in range(epochs):
         model.train()
@@ -108,7 +102,7 @@ def train(model, train_loader, optimizer, epochs=10):
         all_bin_pred, all_bin_true = [], []
         all_sub_pred, all_sub_true = [], []
 
-        print(f"\n--- Epoch {epoch+1}/{epochs} ---")
+        print(f"\nEpoch {epoch+1}/{epochs}")
 
         for batch_idx, (x, bin_y, sub_y) in enumerate(train_loader):
             x, bin_y, sub_y = x.to(device), bin_y.to(device), sub_y.to(device)
@@ -135,7 +129,7 @@ def train(model, train_loader, optimizer, epochs=10):
         sub_acc = accuracy_score(all_sub_true, all_sub_pred)
         print(f"Epoch {epoch+1} Summary | Loss: {total_loss:.4f} | Binary Acc: {bin_acc:.4f} | Subtype Acc: {sub_acc:.4f}")
 
-# === Evaluation ===
+# eval
 def evaluate(model, val_loader, dataset):
     model.eval()
     all_bin_pred, all_bin_true = [], []
@@ -152,7 +146,7 @@ def evaluate(model, val_loader, dataset):
 
     bin_acc = accuracy_score(all_bin_true, all_bin_pred)
     sub_acc = accuracy_score(all_sub_true, all_sub_pred)
-    print("\n=== Evaluation ===")
+    print("\nEvaluation")
     print(f"Binary Accuracy: {bin_acc:.4f}")
     print(f"Subtype Accuracy: {sub_acc:.4f}\n")
 
@@ -171,13 +165,13 @@ def evaluate(model, val_loader, dataset):
     plt.tight_layout()
     plt.show()
 
-# === Main ===
+# main
 if __name__ == "__main__":
     dataset = SkinDataset("dataset", transform=train_transforms)
 
     print("Using device:", device)
     print(f"Total samples: {len(dataset)}")
-    print(f"Subtypes ({len(dataset.subtype_to_idx)}): {list(dataset.subtype_to_idx.keys())}")  # This will print your subtype classes
+    print(f"Subtypes ({len(dataset.subtype_to_idx)}): {list(dataset.subtype_to_idx.keys())}")  # print subtype classes
 
     val_size = int(0.2 * len(dataset))
     train_size = len(dataset) - val_size
