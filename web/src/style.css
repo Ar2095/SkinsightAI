@@ -40,21 +40,20 @@ img { max-width: 100%; }
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 12px clamp(16px, 4vw, 48px);
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--line);
+  background: var(--plum-deep);
+  border-bottom: 1px solid #2e0618;
 }
 .brand img { height: 42px; width: auto; display: block; }
 .topbar nav { display: flex; gap: clamp(10px, 2.5vw, 28px); }
-.topbar nav a { white-space: nowrap; text-decoration: none; color: var(--muted); font-weight: 500; font-size: 15px; }
-.topbar nav a:hover { color: var(--plum); }
+.topbar nav a { white-space: nowrap; text-decoration: none; color: #f4d3df; font-weight: 500; font-size: 15px; }
+.topbar nav a:hover { color: #fff; }
 
 main { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
 
 /* ---------- hero + stepper */
 .hero { padding: 48px 0 24px; }
 .hero-copy { max-width: 720px; margin: 0 auto 28px; text-align: center; }
-.hero h1 { font-size: clamp(32px, 5vw, 50px); font-weight: 700; letter-spacing: -0.01em; }
+.hero h1 { font-size: clamp(16px, 5.2vw, 38px); white-space: nowrap; font-weight: 700; letter-spacing: -0.01em; }
 .lede { font-size: 18px; color: var(--muted); margin: 0 0 14px; }
 .privacy { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--plum); background: var(--blush-2); padding: 6px 14px; border-radius: 999px; margin: 0; }
 .privacy .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--benign); box-shadow: 0 0 0 3px #cdebd8; }
@@ -152,6 +151,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
 .num { width: 52px; text-align: right; font-variant-numeric: tabular-nums; }
 .table-note { font-size: 13px; color: var(--muted); }
 
+.model-status:empty { display: none; }
 .model-status { text-align: center; font-size: 13px; color: var(--muted); margin: 14px 0 0; }
 .model-status.ready { color: var(--benign); }
 .model-status.error { color: var(--malignant); }
@@ -194,6 +194,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
   .topbar nav a { font-size: 13px; }
   .topbar { padding: 10px 16px; }
   .brand img { height: 32px; }
+  .stepper li + li::before { width: 18px; }
   .sample-row { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .sample span { font-size: 11px; padding: 6px; }
   .sample em { font-size: 10px; }

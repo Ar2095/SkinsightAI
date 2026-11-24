@@ -52,7 +52,7 @@ const modelReady = (async () => {
       status.textContent = `Loading model… ${Math.round(f * 100)}%`;
     });
     session = await ort.InferenceSession.create(bytes, { executionProviders: ["wasm"] });
-    status.textContent = "Model ready. Everything runs on this device.";
+    status.textContent = "";
     status.classList.add("ready");
   } catch (err) {
     status.textContent = "The model couldn't load. Please refresh the page.";
