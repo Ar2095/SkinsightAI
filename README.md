@@ -247,7 +247,7 @@ Inference cost: 10 ms per image on a laptop CPU (PyTorch, batch of 1). The web a
 - Fonts: Jost, Inter, Unbounded and Space Grotesk (Google Fonts, SIL OFL)
 
 **Demo video**
-- Narration: Microsoft Edge neural text-to-speech (en-US-BrianNeural), script in [`video/SCRIPT.md`](video/SCRIPT.md)
+- Narration: AI voice generated with [ElevenLabs](https://elevenlabs.io) ("Chris"), script in [`video/SCRIPT.md`](video/SCRIPT.md)
 - Music: GarageBand Apple Loops (royalty-free)
 - Slides from our original 2025 Skinsight presentation
 
@@ -257,7 +257,7 @@ Inference cost: 10 ms per image on a laptop CPU (PyTorch, batch of 1). The web a
 - [American Cancer Society](https://www.cancer.org/cancer/types/melanoma-skin-cancer/detection-diagnosis-staging/survival-rates-for-melanoma-skin-cancer-by-stage.html) (melanoma survival by stage)
 - [Haenssle et al. 2018](https://doi.org/10.1093/annonc/mdy166) (dermatologist reference)
 
-**AI tools:** Claude Code (Anthropic) helped build the 2026 additions: the hold-out evaluation scripts, the ONNX export, the web app port, the banners and this README. We reviewed every result and every number above against the scripts' output.
+**AI tools:** Claude Code (Anthropic) helped build the 2026 additions: the hold-out evaluation scripts, the ONNX export, the web app port, the banners and this README. We reviewed every result and every number above against the scripts' output. The demo video's narration is an ElevenLabs AI voice reading our script.
 
 ---
 
