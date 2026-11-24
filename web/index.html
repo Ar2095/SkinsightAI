@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Skinsight · AI skin spot check</title>
+    <meta name="description" content="Check a skin spot in your browser. Skinsight runs a ResNet-18 trained on the ISIC Archive entirely on your device and tells you honestly how accurate it is." />
+    <meta name="theme-color" content="#7A1240" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta property="og:title" content="Skinsight" />
+    <meta property="og:description" content="AI skin spot check that runs in your browser, with a published evaluation." />
+    <meta property="og:image" content="/devpost/skinsight-banner.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#check" aria-label="Skinsight home"><img src="/img/logo.png" alt="Skinsight: AI-Powered Dermatology Insights" /></a>
+      <nav>
+        <a href="#check">Check a spot</a>
+        <a href="#accuracy">How accurate is it?</a>
+        <a href="#about">About</a>
+      </nav>
+    </header>
+
+    <main>
+      <section id="check" class="hero">
+        <div class="hero-copy">
+          <h1>Check a skin spot in under a minute.</h1>
+          <p class="lede">Skin cancer is the most common cancer in the United States, and early detection saves lives. Upload a close-up photo of a mole or mark and Skinsight estimates whether it looks <b>benign</b> or <b>malignant</b>, and which kind of lesion it resembles.</p>
+          <p class="privacy"><span class="dot"></span>Your photo never leaves your device. The model runs in your browser.</p>
+        </div>
+
+        <ol class="stepper" aria-label="Progress">
+          <li data-step="1" class="active"><span>1</span>Upload</li>
+          <li data-step="2"><span>2</span>Crop</li>
+          <li data-step="3"><span>3</span>Result</li>
+        </ol>
+
+        <div class="card" id="stage-1">
+          <label class="dropzone" id="dropzone">
+            <input type="file" id="file" accept="image/*" hidden />
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <strong>Drop a photo here, or tap to choose one</strong>
+            <small>JPG or PNG. A sharp, well-lit close-up works best.</small>
+          </label>
+
+          <div class="samples">
+            <p>No photo handy? Try an image from the ISIC Archive. These were held out from training, and the diagnoses are confirmed by biopsy.</p>
+            <div class="sample-row">
+              <button class="sample" data-src="/samples/bcc.jpg" data-truth="Basal cell carcinoma (malignant)">
+                <img src="/samples/bcc.jpg" alt="Dermoscopic image of a basal cell carcinoma" loading="lazy" />
+                <span>Basal cell carcinoma</span>
+              </button>
+              <button class="sample" data-src="/samples/seb-keratosis.jpg" data-truth="Seborrheic keratosis (benign)">
+                <img src="/samples/seb-keratosis.jpg" alt="Dermoscopic image of a seborrheic keratosis" loading="lazy" />
+                <span>Seborrheic keratosis</span>
+              </button>
+              <button class="sample" data-src="/samples/melanoma-in-situ.jpg" data-truth="Melanoma in situ (malignant)">
+                <img src="/samples/melanoma-in-situ.jpg" alt="Dermoscopic image of a melanoma in situ" loading="lazy" />
+                <span>Melanoma in situ <em>a case Skinsight misses</em></span>
+              </button>
+            </div>
+          </div>
+
+          <details class="abcde">
+            <summary>Learn the ABCDEs of melanoma</summary>
+            <img src="/img/abcde.jpg" alt="The ABCDE warning signs of melanoma: asymmetry, border, color, diameter, evolving" loading="lazy" />
+          </details>
+        </div>
+
+        <div class="card hidden" id="stage-2">
+          <div class="crop-layout">
+            <div class="crop-main">
+              <h2>Center the spot in the square</h2>
+              <div class="crop-wrap"><img id="crop-img" alt="Your photo, with a square crop box" /></div>
+            </div>
+            <aside class="crop-side">
+              <h3>What the model will see</h3>
+              <canvas id="preview" width="224" height="224" aria-label="224 by 224 pixel preview with a rule-of-thirds grid"></canvas>
+              <ul class="tips">
+                <li>Put the mark in the middle of the square.</li>
+                <li>Fill most of the square, but keep a little skin around it.</li>
+                <li>Leave out background, clothing and jewelry.</li>
+              </ul>
+              <p class="tip-note">Our tests found tight crops help and zoomed-out crops hurt. <a href="#accuracy">See why.</a></p>
+              <div class="examples">
+                <span>Good crops:</span>
+                <img src="/img/crop1.jpg" alt="Example of a good crop" />
+                <img src="/img/crop2.jpg" alt="Example of a good crop" />
+                <img src="/img/crop3.jpg" alt="Example of a good crop" />
+              </div>
+            </aside>
+          </div>
+          <div class="actions">
+            <button class="btn ghost" id="back-1">Back</button>
+            <button class="btn primary" id="analyze">Analyze</button>
+          </div>
+        </div>
+
+        <div class="card hidden" id="stage-3">
+          <div class="result-layout">
+            <div class="result-img"><canvas id="result-crop" width="224" height="224"></canvas><p id="truth" class="truth hidden"></p></div>
+            <div class="result-main">
+              <div class="verdict" id="verdict">
+                <span class="verdict-label" id="verdict-label">Benign</span>
+                <div class="meter"><div class="meter-fill" id="meter-fill"></div><div class="meter-mark"></div></div>
+                <div class="meter-scale"><span>benign</span><span>P(malignant) = <b id="p-mal">0.00</b></span><span>malignant</span></div>
+              </div>
+              <p id="advice" class="advice"></p>
+              <div class="trust" id="trust"></div>
+            </div>
+          </div>
+          <h3 class="table-title">Most likely lesion types</h3>
+          <table class="subtypes">
+            <thead><tr><th>Lesion type</th><th>Probability</th></tr></thead>
+            <tbody id="subtype-rows"></tbody>
+          </table>
+          <p class="table-note">Types under 1% are hidden. The lesion-type guess is much less reliable than the benign/malignant call. Its top pick is right about half the time, and the right answer is in its top 3 about 86% of the time.</p>
+          <div class="actions">
+            <button class="btn ghost" id="back-2">Adjust crop</button>
+            <button class="btn primary" id="restart">Check another spot</button>
+          </div>
+        </div>
+
+        <p class="model-status" id="model-status" role="status">Loading model…</p>
+      </section>
+
+      <section id="accuracy" class="section">
+        <h2>How accurate is it?</h2>
+        <p class="section-lede">We tested Skinsight on <b id="n-test">598</b> lesions it has never seen. All were added to the ISIC Archive after the model was trained. This is what it got right and wrong.</p>
+        <div class="stats" id="stats"></div>
+        <div class="figures">
+          <figure><img id="fig-roc" alt="ROC curve of Skinsight on the hold-out sets" /><figcaption>Catching more cancers means more false alarms. The dot shows where the app's 0.5 cut-off sits. The diamond is published dermatologist performance on different images.</figcaption></figure>
+          <figure><img id="fig-rob" alt="AUROC under image blur, compression, brightness, resolution and cropping changes" /><figcaption>How performance changes when the photo is blurrier, darker, lower resolution or framed differently.</figcaption></figure>
+        </div>
+        <div class="when">
+          <div>
+            <h3>Works best when</h3>
+            <ul>
+              <li>The photo is a sharp, evenly lit close-up, like a dermoscope image</li>
+              <li>The lesion fills most of the crop</li>
+              <li>You treat the result as a nudge, not a diagnosis</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Don't trust it when</h3>
+            <ul>
+              <li>The photo is blurry, very dark or very bright</li>
+              <li>The spot is small in the frame</li>
+              <li>The image isn't a skin-surface photo. On confocal microscopy it called every image malignant.</li>
+              <li>You have darker skin. Almost all test images with a skin-type label were Fitzpatrick I–II.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="fine">Full method, per-subgroup tables and code to reproduce every number: <a href="https://github.com/Ar2095/SkinsightAI#evaluation">GitHub README</a>.</p>
+      </section>
+
+      <section id="about" class="section about">
+        <h2>About</h2>
+        <div class="about-grid">
+          <div>
+            <h3>What's inside</h3>
+            <p>A ResNet-18 with two heads: one predicts benign vs. malignant, and one picks among 11 lesion types from the ISIC diagnosis hierarchy. It was trained in PyTorch on ISIC Archive images. Here it runs as ONNX in your browser via onnxruntime-web, so nothing is uploaded.</p>
+          </div>
+          <div>
+            <h3>Not a doctor</h3>
+            <p>Skinsight is for education. It catches only about half of cancers at its default setting, so a "benign" result does not mean a spot is safe. See a dermatologist about any spot that is new, changing, itching, or bleeding.</p>
+          </div>
+          <div>
+            <h3>Credits</h3>
+            <p>Images: <a href="https://www.isic-archive.com">ISIC Archive</a> (CC-BY; sample images from Memorial Sloan Kettering Cancer Center and Navarrete et al.). Built by the Skinsight team. <a href="https://github.com/Ar2095/SkinsightAI">Source on GitHub</a>.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="disclaimer">
+      Disclaimer: This tool is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment. If you have any concerns, please consult a certified dermatologist.
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

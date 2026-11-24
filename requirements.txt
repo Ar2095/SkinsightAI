@@ -1,6 +1,19 @@
+# Model, evaluation and ONNX export (versions used for the published results)
+torch==2.15.0
+torchvision==0.29.2
+numpy==2.5.5
+pandas==3.1.1
+scikit-learn==1.9.1
+pillow==13.0.0
+matplotlib==3.11.2
+requests==2.34.2
+onnx==1.23.2
+onnxruntime==1.32.0
+onnxscript==0.7.2
+
+# Optional: browser end-to-end check and banner rendering (needs Google Chrome)
+playwright==1.65.2
+
+# Original 2025 Streamlit app (skin_classifier.py)
 streamlit
-torch
-torchvision
-pillow
 streamlit-cropper
-pandas

@@ -1,0 +1,133 @@
+<!doctype html>
+<!-- Source for the README / Devpost banners. Rendered by render_banners.py:
+     banner.html?kind=hero | section&title=... | stats | results -->
+<html>
+<head>
+<meta charset="utf-8" />
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1600px; overflow: hidden; }
+  body { font-family: "Space Grotesk", sans-serif; color: #fff; }
+  .frame { position: relative; width: 1600px; overflow: hidden;
+    background: linear-gradient(100deg, #ff7aa2 0%, #e0517f 38%, #b4235a 70%, #86093a 100%); }
+  .frame.light { background: radial-gradient(900px 400px at 50% 0%, #ffe3ec 0%, transparent 70%), linear-gradient(180deg, #fff8fa, #fde9f0); color: #2b1622; }
+  svg.geo { position: absolute; pointer-events: none; }
+  .pill { display: inline-flex; align-items: center; background: linear-gradient(90deg, #6d0a35, #8c0f45); border: 3px solid rgba(255, 196, 216, 0.75); border-radius: 999px; box-shadow: 0 18px 50px rgba(60, 0, 25, 0.35); }
+  .tag { position: absolute; left: 64px; top: 40px; font: 600 22px "Space Grotesk"; padding: 6px 20px; border-radius: 999px; background: #6d0a35; border: 2px solid rgba(255,255,255,0.8); }
+
+  /* hero */
+  .hero { height: 600px; }
+  .hero .pill { position: absolute; left: 110px; top: 120px; padding: 18px 56px 18px 24px; }
+  .hero .pill img { height: 150px; }
+  .hero .sub { position: absolute; left: 150px; top: 345px; font: 500 46px "Space Grotesk"; letter-spacing: -0.01em; }
+  .hero .line { position: absolute; left: 150px; top: 418px; width: 760px; height: 2px; background: rgba(255,255,255,0.7); }
+  .hero .facts { position: absolute; left: 150px; top: 446px; font: 500 24px "Space Grotesk"; opacity: 0.95; }
+  .hero .dots { position: absolute; right: 120px; top: 120px; display: grid; grid-template-columns: repeat(2, 170px); gap: 22px; }
+  .hero .dots div { width: 170px; height: 170px; border-radius: 50%; overflow: hidden; border: 5px solid rgba(255,255,255,0.9); box-shadow: 0 12px 30px rgba(60,0,25,0.35); position: relative; }
+  .hero .dots img { width: 100%; height: 100%; object-fit: cover; }
+  .hero .dots span { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); font: 700 14px "Space Grotesk"; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+  .ben { background: #e3f4ea; color: #1f7a45; } .mal { background: #fbe4e2; color: #b3261e; }
+
+  /* section */
+  .section { height: 300px; display: flex; align-items: center; justify-content: center; }
+  .section h1 { font: 800 76px "Unbounded"; letter-spacing: -0.01em; text-shadow: 0 6px 30px rgba(70, 0, 30, 0.35); text-align: center; line-height: 1.05; position: relative; }
+  .section h1 small { display: block; font: 500 26px "Space Grotesk"; letter-spacing: 0.02em; margin-top: 14px; opacity: 0.92; text-shadow: none; }
+
+  /* stats */
+  .stats { height: 560px; display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; padding: 0 70px; }
+  .stat { text-align: center; padding: 0 34px; border-left: 2px solid rgba(180, 35, 90, 0.15); }
+  .stat:first-of-type { border-left: none; }
+  .stat b { display: block; font: 800 112px "Unbounded"; color: #86093a; letter-spacing: -0.03em; line-height: 1.05; }
+  .stat b em { font-style: normal; color: #e0517f; }
+  .stat p { font: 500 30px/1.3 "Space Grotesk"; color: #5e4352; margin-top: 18px; }
+  .stat cite { display: block; font: 700 18px "Space Grotesk"; letter-spacing: 0.08em; color: #e0517f; margin-top: 18px; font-style: normal; }
+
+  /* results */
+  .results { height: 480px; padding: 56px 70px 0; }
+  .results h2 { font: 700 34px "Unbounded"; color: #86093a; text-align: center; }
+  .results .sub { text-align: center; font: 500 22px "Space Grotesk"; color: #6f5763; margin-top: 10px; }
+  .results .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; margin-top: 40px; }
+  .results .tile { background: #fff; border-radius: 26px; padding: 30px 26px; box-shadow: 0 14px 40px rgba(122,18,64,0.10); border: 2px solid #f6dce6; }
+  .results .tile b { display: block; font: 800 72px "Unbounded"; color: #86093a; letter-spacing: -0.03em; }
+  .results .tile strong { display: block; font: 700 24px "Space Grotesk"; color: #2b1622; margin-top: 8px; }
+  .results .tile span { display: block; font: 500 18px/1.35 "Space Grotesk"; color: #6f5763; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// White wireframe geodesic spheres, like the slide deck's decoration.
+function geodesic(cx, cy, r, rotY, rotX, opacity = 0.9, stroke = "#fff") {
+  const t = (1 + Math.sqrt(5)) / 2;
+  let v = [[-1,t,0],[1,t,0],[-1,-t,0],[1,-t,0],[0,-1,t],[0,1,t],[0,-1,-t],[0,1,-t],[t,0,-1],[t,0,1],[-t,0,-1],[-t,0,1]];
+  let f = [[0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],[1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],[3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],[4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]];
+  const norm = (p) => { const l = Math.hypot(...p); return p.map((x) => x / l); };
+  v = v.map(norm);
+  const cache = {}, mid = (a, b) => { const k = a < b ? a + "_" + b : b + "_" + a; if (cache[k] == null) { v.push(norm(v[a].map((x, i) => (x + v[b][i]) / 2))); cache[k] = v.length - 1; } return cache[k]; };
+  const f2 = [];
+  for (const [a, b, c] of f) { const ab = mid(a, b), bc = mid(b, c), ca = mid(c, a); f2.push([a, ab, ca], [b, bc, ab], [c, ca, bc], [ab, bc, ca]); }
+  const edges = new Set();
+  for (const [a, b, c] of f2) for (const [x, y] of [[a, b], [b, c], [c, a]]) edges.add(x < y ? x + "," + y : y + "," + x);
+  const P = v.map(([x, y, z]) => {
+    let x1 = x * Math.cos(rotY) + z * Math.sin(rotY), z1 = -x * Math.sin(rotY) + z * Math.cos(rotY);
+    let y1 = y * Math.cos(rotX) - z1 * Math.sin(rotX), z2 = y * Math.sin(rotX) + z1 * Math.cos(rotX);
+    return [cx + x1 * r, cy + y1 * r, z2];
+  });
+  let s = "";
+  for (const e of edges) { const [a, b] = e.split(",").map(Number); if (P[a][2] + P[b][2] < -0.15) continue;
+    s += `<line x1="${P[a][0].toFixed(1)}" y1="${P[a][1].toFixed(1)}" x2="${P[b][0].toFixed(1)}" y2="${P[b][1].toFixed(1)}"/>`; }
+  return `<g stroke="${stroke}" stroke-width="2" stroke-opacity="${opacity}" stroke-linecap="round">${s}</g>`;
+}
+function geoSvg(h, spheres, stroke) {
+  return `<svg class="geo" width="1600" height="${h}" viewBox="0 0 1600 ${h}">${spheres.map((s) => geodesic(...s, stroke)).join("")}</svg>`;
+}
+
+const q = new URLSearchParams(location.search);
+const kind = q.get("kind");
+const root = document.getElementById("root");
+if (kind === "hero") {
+  root.innerHTML = `<div class="frame hero">
+    ${geoSvg(600, [[1560, 40, 210, 0.4, 0.3, 0.85], [40, 610, 150, 1.1, 0.5, 0.7]])}
+    <div class="pill"><img src="/img/logo.png" /></div>
+    <div class="sub">Check a skin spot in under a minute.</div>
+    <div class="line"></div>
+    <div class="facts">ResNet-18 · runs in your browser · tested on 598 lesions it had never seen</div>
+    <div class="dots">
+      <div><img src="/samples/seb-keratosis.jpg"><span class="ben">benign</span></div>
+      <div><img src="/samples/bcc.jpg"><span class="mal">malignant</span></div>
+      <div><img src="/samples/nevus.jpg"><span class="ben">benign</span></div>
+      <div><img src="/samples/melanoma-in-situ.jpg"><span class="mal">malignant</span></div>
+    </div>
+  </div>`;
+} else if (kind === "section") {
+  const seed = [...(q.get("title") || "")].reduce((a, c) => a + c.charCodeAt(0), 0);
+  root.innerHTML = `<div class="frame section">
+    ${geoSvg(300, [[1530 - (seed % 60), 30, 170, seed * 0.37, 0.4, 0.8], [70 + (seed % 40), 300, 130, seed * 0.11, 0.7, 0.6]])}
+    <h1>${q.get("title")}${q.get("sub") ? `<small>${q.get("sub")}</small>` : ""}</h1>
+  </div>`;
+} else if (kind === "stats") {
+  root.innerHTML = `<div class="frame light stats">
+    ${geoSvg(560, [[1590, 20, 150, 0.9, 0.3, 0.35], [10, 560, 120, 0.2, 0.6, 0.3]], "#e0517f")}
+    <div class="stat"><b>1 <em>in</em> 5</b><p>Americans will develop skin cancer by age 70</p><cite>SKIN CANCER FOUNDATION</cite></div>
+    <div class="stat"><b>36.5</b><p>days: the average wait for a new dermatology appointment</p><cite>AMN HEALTHCARE, 2025</cite></div>
+    <div class="stat"><b>&gt;99%</b><p>5-year survival when melanoma is caught early, vs. 36% once it spreads</p><cite>AMERICAN CANCER SOCIETY</cite></div>
+  </div>`;
+} else if (kind === "results") {
+  const m = JSON.parse(q.get("m"));
+  root.innerHTML = `<div class="frame light results">
+    ${geoSvg(480, [[1590, 20, 150, 0.9, 0.3, 0.3], [10, 480, 120, 0.2, 0.6, 0.25]], "#e0517f")}
+    <h2>Tested on ${m.n} lesions it had never seen</h2>
+    <p class="sub">ISIC Archive images added after training · ${m.nm} malignant · ${m.nb} benign</p>
+    <div class="grid">
+      <div class="tile"><b>${m.auroc}</b><strong>AUROC</strong><span>95% CI ${m.ci}. 0.5 = coin flip</span></div>
+      <div class="tile"><b>${m.sens}</b><strong>of cancers caught</strong><span>at the app's 0.5 cut-off (dermatologists: ~87%)</span></div>
+      <div class="tile"><b>${m.spec}</b><strong>of benign cleared</strong><span>${m.tn} of ${m.nb} benign lesions</span></div>
+      <div class="tile"><b>${m.npv}</b><strong>&ldquo;benign&rdquo; calls right</strong><span>at this set's ${m.prev} cancer rate</span></div>
+    </div>
+  </div>`;
+}
+document.fonts.ready.then(() => Promise.all([...document.images].map((i) => i.decode().catch(() => {})))).then(() => { document.body.dataset.ready = "1"; });
+</script>
+</body>
+</html>

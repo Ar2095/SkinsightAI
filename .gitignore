@@ -1,5 +1,16 @@
 # macOS system files
 .DS_Store
 
-# Python environment folder
+# Python environments
 venv/
+.venv/
+__pycache__/
+
+# Evaluation images (re-download with: python eval/fetch_holdout.py)
+eval/data/images/
+
+# Web build
+web/node_modules/
+web/dist/
+.vercel
+.env*
