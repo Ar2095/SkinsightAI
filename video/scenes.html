@@ -9,6 +9,9 @@
   html, body { width: 1920px; height: 1080px; overflow: hidden; background: #86093a; }
   body { font-family: "Space Grotesk", sans-serif; color: #fff; }
   #stage { position: absolute; inset: 0; overflow: hidden; }
+  .caption { position: absolute; left: 0; right: 0; bottom: 44px; text-align: center; z-index: 100; pointer-events: none; }
+  .caption span { display: inline-block; max-width: 1500px; font: 600 42px/1.3 'Space Grotesk', sans-serif; color: #fff;
+    background: rgba(24, 4, 14, 0.78); padding: 10px 26px 12px; border-radius: 14px; letter-spacing: 0.005em; }
   .bg { position: absolute; inset: 0; background: linear-gradient(100deg, #ff7aa2 0%, #e0517f 38%, #b4235a 70%, #86093a 100%); }
   .bg.light { background: radial-gradient(1100px 500px at 50% 0%, #ffe3ec 0%, transparent 70%), linear-gradient(180deg, #fff8fa, #fde9f0); }
   svg.geo { position: absolute; left: 0; top: 0; }
@@ -143,7 +146,7 @@ S.access = (t) => {
 S.intro = (t) => `${bg(t)}
   <div class="center lead" style="top:250px;${fadeUp(ap(t, 0.05, 0.5))}">So we built</div>
   <div class="center" style="top:350px;${pop(t, cue("Skinsight") - 0.15, 0.8)}">${logoPill(210)}</div>
-  <div class="center" style="top:710px;${fadeUp(ap(t, cue("running") - 0.2, 0.6))}"><span class="chip" style="position:relative"><em>✓</em> Runs entirely in your browser · your photo never leaves your device</span></div>`;
+  <div class="center" style="top:710px;${fadeUp(ap(t, cue("right") - 0.2, 0.6))}"><span class="chip" style="position:relative"><em>✓</em> Runs entirely in your browser · your photo never leaves your device</span></div>`;
 
 S.demo = (t, p) => {
   const frame = Math.min(p.nframes, Math.floor(t * 30) + 1);
@@ -156,7 +159,7 @@ S.demo = (t, p) => {
   if (t >= m.benign_upload - 0.2 && t < m.benign_crop) step = "Upload";
   else if (t >= m.benign_crop && t < m.benign_result) step = "Crop";
   else if (t >= m.benign_result && t < m.malig_upload) step = "Result";
-  const bw = 1640, bh = Math.round(bw * 9 / 16) + 46, left = (1920 - bw) / 2, top = 40;
+  const bw = 1520, bh = Math.round(bw * 9 / 16) + 46, left = (1920 - bw) / 2, top = 28;
   const chipIn = (s) => fadeUp(ap(t, s, 0.5), 20);
   const lastSwitch = [0, m.benign_upload - 0.2, m.malig_upload - 0.2, m.friend_upload - 0.2].filter((x) => x <= t).pop();
   return `${bg(t)}
@@ -212,17 +215,16 @@ S.limits = (t, p) => {
     ["badly", "Badly lit (±50% brightness)", `AUROC ${m.dark}`],
     ["small", "Spot small in the frame", `AUROC ${m.small}`],
     ["re-cropping", "Re-cropping or mirroring", `flips ${m.flip}% of answers`],
-    ["Darker", "Darker skin tones (Fitzpatrick IV–VI)", "0 test images"],
   ];
   const conc = cue("educational") - 0.5;
   const dim = 1 - ap(t, conc - 0.1, 0.45);
   let h = "";
   rows.forEach(([w, a, b], i) => {
-    h += `<div class="row" style="top:${250 + i * 124}px;${fadeUp(ap(t, cue(w) - 0.25, 0.5), 30)};opacity:${Math.min(ap(t, cue(w) - 0.25, 0.5), dim)}"><div class="ic">${i + 1}</div><div class="t">${a}</div><div class="m">${b}</div></div>`;
+    h += `<div class="row" style="top:${290 + i * 140}px;${fadeUp(ap(t, cue(w) - 0.25, 0.5), 30)};opacity:${Math.min(ap(t, cue(w) - 0.25, 0.5), dim)}"><div class="ic">${i + 1}</div><div class="t">${a}</div><div class="m">${b}</div></div>`;
   });
   return `${bg(t)}<div class="center h1" style="top:90px;opacity:${Math.min(dim, ap(t, 0.1))};transform:translateY(${(1 - ap(t, 0.1)) * 40}px)">Where it breaks</div>${h}
   <div class="center" style="top:360px;${pop(t, conc, 0.7)}"><div class="h1" style="font-size:96px">Educational tool,<br>not a diagnosis.</div>
-  <div class="lead" style="margin-top:40px;${fadeUp(ap(t, cue("every") - 0.3))}">Every result tells you how much to trust it.</div></div>`;
+  <div class="lead" style="margin-top:40px;${fadeUp(ap(t, cue("every", conc) - 0.3))}">Every result tells you how much to trust it.</div></div>`;
 };
 
 S.outro = (t) => `${bg(t)}
@@ -234,7 +236,8 @@ S.outro = (t) => `${bg(t)}
 
 window.render = (scene, t, params = {}) => {
   W = params.words || [];
-  document.getElementById("stage").innerHTML = S[scene](t, params);
+  const cap = params.caption ? `<div class="caption"><span>${params.caption}</span></div>` : "";
+  document.getElementById("stage").innerHTML = S[scene](t, params) + cap;
 };
 window.preload = (srcs) => Promise.all(srcs.map((s) => new Promise((r) => { const i = new Image(); i.onload = i.onerror = r; i.src = s; })));
 </script>

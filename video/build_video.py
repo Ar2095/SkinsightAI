@@ -78,7 +78,72 @@ for s in SEGMENTS:
         s["params"]["dur"] = s["dur"]
 
 
+SCRIPT = {b["id"]: b["text"] for b in json.loads((HERE / "script.json").read_text())["beats"]}
+# spoken number -> caption form (matched on normalized tokens)
+NUMS = [("five hundred ninety-eight", "598"), ("seventy-eight thousand", "78,000"), ("zero point seven two", "0.72"),
+        ("ninety-nine percent", "99%"), ("ninety-seven percent", "97%"), ("eighty-seven percent", "87%"),
+        ("ninety percent", "90%"), ("six percent", "6%"), ("one percent", "1%"), ("thirty-six", "36%"),
+        ("seventy", "70"), ("eleven", "11")]
+
+
+def _norm(x):
+    return "".join(c for c in x.lower() if c.isalnum())
+
+
+def beat_tokens(beat):
+    """Script tokens (with punctuation) aligned to WordBoundary start times."""
+    ws, toks, j = words[beat], [], 0
+    for tok in SCRIPT[beat].split():
+        target, acc, t0 = _norm(tok), "", None
+        while j < len(ws) and len(acc) < len(target):
+            if t0 is None:
+                t0 = ws[j]["t"]
+            acc += _norm(ws[j]["w"])
+            j += 1
+        if t0 is None:
+            t0 = toks[-1][1] if toks else 0.0
+        toks.append([tok, t0])
+    # merge spoken numbers
+    out, i = [], 0
+    while i < len(toks):
+        for phrase, rep in NUMS:
+            n = len(phrase.split())
+            if " ".join(_norm(x[0]) for x in toks[i:i + n]) == " ".join(_norm(w) for w in phrase.split()):
+                tail = toks[i + n - 1][0]
+                punct = tail[len(tail.rstrip(".,:;!?")):]
+                out.append([rep + punct, toks[i][1]]); i += n
+                break
+        else:
+            out.append(toks[i]); i += 1
+    return out
+
+
+def captions():
+    """Global (start, end, text) caption cues, chunked at punctuation / ~50 chars."""
+    cues, t = [], 0.0
+    for s in SEGMENTS:
+        for beat, off in s["audio"]:
+            toks = beat_tokens(beat)
+            chunks, cur = [], []
+            for k, (w, ts) in enumerate(toks):
+                if cur and len(" ".join(x[0] for x in cur + [[w]])) > 50:
+                    chunks.append(cur); cur = []
+                cur.append([w, ts])
+                if w[-1] in ".,:;?!" and len(cur) >= 3 and len(" ".join(x[0] for x in cur)) >= 18:
+                    chunks.append(cur); cur = []
+            if cur:
+                chunks.append(cur)
+            for k, c in enumerate(chunks):
+                st = t + off + c[0][1] - 0.05
+                en = t + off + (chunks[k + 1][0][1] - 0.05 if k + 1 < len(chunks) else dur[beat] + 0.15)
+                cues.append((st, en, " ".join(x[0] for x in c)))
+        t += s["dur"]
+    return cues
+
+
 def render(only=None, scale=1.0):
+    cues = captions()
+    seg_start = list(_cum())
     (B / "segments").mkdir(parents=True, exist_ok=True)
     with sync_playwright() as pw:
         browser = pw.chromium.launch(channel="chrome")
@@ -95,8 +160,10 @@ def render(only=None, scale=1.0):
                                    "-c:v", "mjpeg", "-i", "-", "-vf", "scale=1920:1080:flags=lanczos,format=yuv420p",
                                    "-c:v", "libx264", "-crf", "17", "-preset", "medium", "-r", str(FPS), str(out)],
                                   stdin=subprocess.PIPE)
-            params = json.dumps(s["params"])
             for f in range(n):
+                gt = seg_start[i] + f / FPS
+                cap = next((c for st, en, c in cues if st <= gt < en), "")
+                params = json.dumps({**s["params"], "caption": cap})
                 page.evaluate(f"render({json.dumps(s['scene'])}, {f / FPS}, {params})")
                 page.evaluate("Promise.all([...document.images].map(i => i.decode().catch(() => {})))")
                 ff.stdin.write(page.screenshot(type="jpeg", quality=93))
@@ -143,7 +210,7 @@ def assemble():
                        f"volume='if(lt(t,{enter}),0,min(1,(t-{enter})/1.5))':eval=frame[m{j}]")
     filters.append("".join(f"[m{j}]" for j in range(len(layers))) + f"amix=inputs={len(layers)}:normalize=0[mus0]")
     # louder on title + outro, ducked under narration, fade out at the end
-    filters.append(f"[mus0]volume='if(lt(t,3.4),0.55,if(gt(t,{outro_start + 4.6:.2f}),0.5,0.14))':eval=frame,"
+    filters.append(f"[mus0]volume='if(lt(t,3.4),0.42,if(gt(t,{outro_start + 4.6:.2f}),0.38,0.10))':eval=frame,"
                    f"afade=t=in:st=0:d=1.2,afade=t=out:st={total - 2.6:.2f}:d=2.6[music]")
     filters.append("[voice][music]amix=inputs=2:normalize=0,loudnorm=I=-15:TP=-1.5:LRA=9[aout]")
     subprocess.run(["ffmpeg", "-y", "-v", "error", *inputs, "-filter_complex", ";".join(filters),

@@ -118,7 +118,7 @@ def main():
         page = browser.new_page(viewport={"width": 1440, "height": 810}, device_scale_factor=4 / 3)
         page.add_init_script(CURSOR_JS)
         page.goto(args.url)
-        page.wait_for_selector("#model-status.ready", timeout=120_000)
+        page.wait_for_selector("#model-status.ready", state="attached", timeout=120_000)
         page.evaluate("window.scrollTo(0, 0)")
         r = Recorder(page)
         page.mouse.move(*r.mouse)
@@ -145,9 +145,9 @@ def main():
             r.wait(0.8)
             r.move(*r.center(".hero h1"), 1.0)
             r.wait(1.2)
-            r.move(*r.center(".privacy"), 1.0)
+            r.move(*r.center(".lede"), 1.0)
             r.wait(1.4)
-            r.move(*r.center("#model-status"), 1.0)
+            r.move(*r.center("#dropzone strong"), 1.0)
         beat("open", open_site)
 
         # --- benign

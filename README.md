@@ -236,6 +236,7 @@ Inference cost: 10 ms per image on a laptop CPU (PyTorch, batch of 1). The web a
   - the [MEL-SELF trial](https://www.sydney.edu.au/medicine-health/our-research/research-centres/melself-project.html), University of Sydney
   - Dr. Cristian Navarrete et al.
 - The in-app sample images are ISIC_6537724, ISIC_3099700, ISIC_5423259 and ISIC_7168023 (CC-BY, from MSKCC and Navarrete et al.).
+- Demo video: the benign mole and melanoma photos come from public skin-lesion datasets outside the ISIC Archive, so the model never trained on anything from those sources. The third photo is a teammate's friend's mole, taken on a phone.
 
 **Models and code we didn't write**
 - [ResNet-18](https://arxiv.org/abs/1512.03385) (He et al., 2016), with ImageNet weights from [torchvision](https://pytorch.org/vision/)
@@ -244,6 +245,11 @@ Inference cost: 10 ms per image on a laptop CPU (PyTorch, batch of 1). The web a
 - [ONNX Runtime Web](https://onnxruntime.ai) (MIT), [Cropper.js](https://fengyuanchen.github.io/cropperjs/) (MIT), [Vite](https://vite.dev) (MIT)
 - [Streamlit](https://streamlit.io) and [streamlit-cropper](https://github.com/turner-anderson/streamlit-cropper) for the original app
 - Fonts: Jost, Inter, Unbounded and Space Grotesk (Google Fonts, SIL OFL)
+
+**Demo video**
+- Narration: Microsoft Edge neural text-to-speech (en-US-BrianNeural), script in [`video/SCRIPT.md`](video/SCRIPT.md)
+- Music: GarageBand Apple Loops (royalty-free)
+- Slides from our original 2025 Skinsight presentation
 
 **Statistics cited**
 - [Skin Cancer Foundation](https://www.skincancer.org/skin-cancer-information/skin-cancer-facts/) (1 in 5 Americans by age 70)
