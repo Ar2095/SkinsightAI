@@ -1,0 +1,242 @@
+<!doctype html>
+<!-- Video scenes. build_video.py calls render(scene, t, params) for every frame and screenshots it. -->
+<html>
+<head>
+<meta charset="utf-8" />
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #86093a; }
+  body { font-family: "Space Grotesk", sans-serif; color: #fff; }
+  #stage { position: absolute; inset: 0; overflow: hidden; }
+  .bg { position: absolute; inset: 0; background: linear-gradient(100deg, #ff7aa2 0%, #e0517f 38%, #b4235a 70%, #86093a 100%); }
+  .bg.light { background: radial-gradient(1100px 500px at 50% 0%, #ffe3ec 0%, transparent 70%), linear-gradient(180deg, #fff8fa, #fde9f0); }
+  svg.geo { position: absolute; left: 0; top: 0; }
+  .abs { position: absolute; }
+  .center { position: absolute; left: 0; right: 0; text-align: center; }
+  .big { font: 800 220px/1 "Unbounded"; letter-spacing: -0.04em; }
+  .h1 { font: 800 86px/1.05 "Unbounded"; letter-spacing: -0.02em; }
+  .h2 { font: 700 54px/1.1 "Unbounded"; }
+  .lead { font: 500 46px/1.3 "Space Grotesk"; }
+  .cite { font: 700 22px "Space Grotesk"; letter-spacing: 0.12em; opacity: 0.85; }
+  .pill { display: inline-flex; align-items: center; background: linear-gradient(90deg, #6d0a35, #8c0f45); border: 4px solid rgba(255, 196, 216, 0.8); border-radius: 999px; box-shadow: 0 24px 70px rgba(60, 0, 25, 0.4); }
+  .card { position: absolute; background: rgba(255,255,255,0.13); border: 2px solid rgba(255,255,255,0.45); border-radius: 34px; padding: 40px 44px; backdrop-filter: blur(6px); box-shadow: 0 20px 60px rgba(60,0,25,0.25); }
+  .card b { display: block; font: 800 92px/1 "Unbounded"; letter-spacing: -0.03em; }
+  .card span { display: block; font: 500 32px/1.3 "Space Grotesk"; margin-top: 18px; }
+  .card i { display: block; font: 700 18px "Space Grotesk"; letter-spacing: 0.12em; font-style: normal; opacity: 0.8; margin-top: 18px; }
+  .chip { position: absolute; display: inline-flex; align-items: center; gap: 14px; padding: 14px 26px; border-radius: 999px; background: #6d0a35; border: 2px solid rgba(255,255,255,0.85); font: 600 28px "Space Grotesk"; box-shadow: 0 14px 40px rgba(60,0,25,0.35); white-space: nowrap; }
+  .chip em { font-style: normal; background: #ffb3cb; color: #6d0a35; border-radius: 999px; padding: 2px 14px; font-weight: 700; }
+  .slide { position: absolute; inset: 0; background-size: cover; background-position: center; }
+  .browser { position: absolute; border-radius: 18px; overflow: hidden; background: #fff; box-shadow: 0 40px 100px rgba(50,0,20,0.45), 0 0 0 2px rgba(255,255,255,0.5); }
+  .bar { height: 46px; background: #f4e9ee; display: flex; align-items: center; padding: 0 18px; gap: 10px; border-bottom: 1px solid #e8d3dc; }
+  .bar .d { width: 14px; height: 14px; border-radius: 50%; }
+  .url { margin-left: 24px; flex: 0 0 520px; height: 30px; border-radius: 9px; background: #fff; display: flex; align-items: center; gap: 10px; padding: 0 14px; font: 500 17px "Inter"; color: #5e4352; }
+  .row { position: absolute; left: 230px; width: 1460px; height: 104px; display: flex; align-items: center; gap: 34px; background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.35); border-radius: 26px; padding: 0 40px; }
+  .row .ic { width: 62px; height: 62px; border-radius: 50%; background: #fff; color: #b4235a; display: grid; place-items: center; font: 800 32px "Unbounded"; flex: none; }
+  .row .t { font: 600 38px "Space Grotesk"; flex: 1; }
+  .row .m { font: 700 34px "Unbounded"; color: #ffe0ea; white-space: nowrap; }
+  .node { position: absolute; width: 330px; height: 230px; border-radius: 30px; background: #fff; color: #6d0a35; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 24px 60px rgba(60,0,25,0.3); padding: 0 20px; }
+  .node b { font: 700 34px/1.15 "Unbounded"; }
+  .node span { font: 500 24px/1.3 "Space Grotesk"; color: #7a5566; margin-top: 12px; }
+  .tile { position: absolute; background: #fff; color: #2b1622; border-radius: 34px; padding: 34px 40px; box-shadow: 0 24px 60px rgba(60,0,25,0.25); }
+  .tile b { display: block; font: 800 110px/1 "Unbounded"; color: #86093a; letter-spacing: -0.03em; }
+  .tile strong { display: block; font: 700 34px "Space Grotesk"; margin-top: 14px; }
+  .tile span { display: block; font: 500 24px "Space Grotesk"; color: #6f5763; margin-top: 8px; }
+  .barrow { position: absolute; left: 1000px; width: 800px; }
+  .barrow .lbl { font: 600 32px "Space Grotesk"; margin-bottom: 14px; display: flex; justify-content: space-between; }
+  .barrow .track { height: 46px; border-radius: 999px; background: rgba(255,255,255,0.2); overflow: hidden; }
+  .barrow .fill { height: 100%; border-radius: 999px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+// ---------------------------------------------------------------- helpers
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = (x) => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const outBack = (x) => { x = clamp(x); const c1 = 1.5, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+// appear(t, start, dur): 0..1 progress
+const ap = (t, s, d = 0.6) => ease((t - s) / d);
+const fadeUp = (p, dy = 40) => `opacity:${p};transform:translateY(${(1 - p) * dy}px);`;
+const pop = (t, s, d = 0.6) => { const p = clamp((t - s) / d); return `opacity:${clamp(p * 2)};transform:scale(${0.6 + 0.4 * outBack(p)});`; };
+let W = [];
+function cue(word, after = 0, fallback = 0) {
+  const w = W.find((x) => x.t >= after && x.w.toLowerCase().startsWith(word.toLowerCase()));
+  return w ? w.t : fallback;
+}
+
+function geodesic(cx, cy, r, rotY, rotX, opacity = 0.9, stroke = "#fff") {
+  const t = (1 + Math.sqrt(5)) / 2;
+  let v = [[-1,t,0],[1,t,0],[-1,-t,0],[1,-t,0],[0,-1,t],[0,1,t],[0,-1,-t],[0,1,-t],[t,0,-1],[t,0,1],[-t,0,-1],[-t,0,1]];
+  const f = [[0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],[1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],[3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],[4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]];
+  const norm = (p) => { const l = Math.hypot(...p); return p.map((x) => x / l); };
+  v = v.map(norm);
+  const cache = {}, mid = (a, b) => { const k = a < b ? a + "_" + b : b + "_" + a; if (cache[k] == null) { v.push(norm(v[a].map((x, i) => (x + v[b][i]) / 2))); cache[k] = v.length - 1; } return cache[k]; };
+  const f2 = [];
+  for (const [a, b, c] of f) { const ab = mid(a, b), bc = mid(b, c), ca = mid(c, a); f2.push([a, ab, ca], [b, bc, ab], [c, ca, bc], [ab, bc, ca]); }
+  const edges = new Set();
+  for (const [a, b, c] of f2) for (const [x, y] of [[a, b], [b, c], [c, a]]) edges.add(x < y ? x + "," + y : y + "," + x);
+  const P = v.map(([x, y, z]) => {
+    const x1 = x * Math.cos(rotY) + z * Math.sin(rotY), z1 = -x * Math.sin(rotY) + z * Math.cos(rotY);
+    const y1 = y * Math.cos(rotX) - z1 * Math.sin(rotX), z2 = y * Math.sin(rotX) + z1 * Math.cos(rotX);
+    return [cx + x1 * r, cy + y1 * r, z2];
+  });
+  let s = "";
+  for (const e of edges) { const [a, b] = e.split(",").map(Number); if (P[a][2] + P[b][2] < -0.15) continue;
+    s += `<line x1="${P[a][0].toFixed(1)}" y1="${P[a][1].toFixed(1)}" x2="${P[b][0].toFixed(1)}" y2="${P[b][1].toFixed(1)}"/>`; }
+  return `<g stroke="${stroke}" stroke-width="2.4" stroke-opacity="${opacity}" stroke-linecap="round">${s}</g>`;
+}
+function bg(t, light = false) {
+  const stroke = light ? "#e0517f" : "#fff", o = light ? 0.35 : 0.8;
+  return `<div class="bg ${light ? "light" : ""}"></div><svg class="geo" width="1920" height="1080">${geodesic(1840, 90, 290, 0.4 + t * 0.12, 0.35, o, stroke)}${geodesic(70, 1040, 210, 1.1 - t * 0.09, 0.5, o * 0.8, stroke)}</svg>`;
+}
+const LOGO = "../web/public/img/logo.png";
+const logoPill = (h = 190) => `<div class="pill" style="padding:${h * 0.12}px ${h * 0.36}px ${h * 0.12}px ${h * 0.16}px"><img src="${LOGO}" style="height:${h}px"></div>`;
+const count = (t, s, d, to, dec = 0) => (clamp((t - s) / d) < 1 ? (to * ease((t - s) / d)) : to).toFixed(dec);
+
+// ---------------------------------------------------------------- scenes
+const S = {};
+S.title = (t) => `${bg(t)}
+  <div class="center" style="top:330px;${pop(t, 0.2, 0.9)}">${logoPill(200)}</div>
+  <div class="center lead" style="top:640px;${fadeUp(ap(t, 1.2, 0.7))}">A demo, and an honest evaluation</div>
+  <div class="center cite" style="top:730px;${fadeUp(ap(t, 1.6, 0.7))}">AI FOR MEDICINE · GLOBAL STUDENT HACKATHON 2026</div>`;
+
+S.hook = (t) => {
+  const hl = ap(t, cue("five") , 0.5);
+  let people = "";
+  for (let i = 0; i < 5; i++) {
+    const on = i === 2 ? hl : 0;
+    const col = `rgba(255,255,255,${0.35 + 0.65 * on})`;
+    people += `<svg width="120" height="200" viewBox="0 0 60 100" style="${fadeUp(ap(t, 0.2 + i * 0.12, 0.5), 30)}"><circle cx="30" cy="18" r="14" fill="${i === 2 ? (on > 0.5 ? "#fff" : col) : col}"/><path d="M8 100V52a22 22 0 0 1 44 0v48z" fill="${i === 2 ? (on > 0.5 ? "#fff" : col) : col}"/></svg>`;
+  }
+  return `${bg(t)}
+  <div class="center" style="top:150px;display:flex;justify-content:center;gap:50px">${people}</div>
+  <div class="center big" style="top:400px;${pop(t, cue("one"), 0.7)}">1 in 5</div>
+  <div class="center lead" style="top:670px;${fadeUp(ap(t, cue("Americans"), 0.6))}">Americans will develop skin cancer<br>before they turn 70</div>
+  <div class="center cite" style="top:850px;${fadeUp(ap(t, cue("seventy") - 0.4, 0.6))}">SKIN CANCER FOUNDATION</div>`;
+};
+
+S.survival = (t) => {
+  const a = cue("ninety-nine") - 0.6, b = cue("thirty-six") - 0.5;
+  const h1 = 560 * 0.99 * ease((t - a) / 1.2), h2 = 560 * 0.36 * ease((t - b) / 1.0);
+  return `${bg(t)}
+  <div class="center h2" style="top:90px;${fadeUp(ap(t, 0.1))}">Catching it early changes everything</div>
+  <div class="center cite" style="top:180px;${fadeUp(ap(t, cue("Melanoma")))}">MELANOMA · 5-YEAR RELATIVE SURVIVAL</div>
+  <div class="abs" style="left:560px;bottom:150px;width:300px;height:${h1}px;background:#fff;border-radius:26px 26px 8px 8px;opacity:${ap(t, a, 0.3)}"></div>
+  <div class="abs" style="left:1060px;bottom:150px;width:300px;height:${h2}px;background:rgba(255,255,255,0.45);border-radius:26px 26px 8px 8px;opacity:${ap(t, b, 0.3)}"></div>
+  <div class="abs h1" style="left:500px;width:420px;text-align:center;bottom:${170 + h1}px;opacity:${ap(t, a, 0.3)}">&gt;${count(t, a, 1.2, 99)}%</div>
+  <div class="abs h1" style="left:1000px;width:420px;text-align:center;bottom:${170 + h2}px;opacity:${ap(t, b, 0.3)}">${count(t, b, 1.0, 36)}%</div>
+  <div class="abs lead" style="left:500px;width:420px;text-align:center;bottom:70px;font-size:36px;opacity:${ap(t, a, 0.4)}">caught early</div>
+  <div class="abs lead" style="left:1000px;width:420px;text-align:center;bottom:70px;font-size:36px;opacity:${ap(t, b, 0.4)}">after it spreads</div>
+  <div class="abs cite" style="right:70px;bottom:30px;opacity:${ap(t, b + 1)}">AMERICAN CANCER SOCIETY</div>`;
+};
+
+S.access = (t) => {
+  const c1 = cue("average") - 0.3, c2 = cue("Rural") - 0.3, c3 = cue("skin-check") - 0.4;
+  return `${bg(t)}
+  <div class="center h1" style="top:110px;${fadeUp(ap(t, 0.1))}">But getting checked isn't easy</div>
+  <div class="card" style="left:120px;top:360px;width:540px;height:470px;${fadeUp(ap(t, c1, 0.7), 60)}"><b>${count(t, c1, 1.2, 36.5, 1)}</b><span>days: the average wait for a new dermatology appointment</span><i>AMN HEALTHCARE, 2025</i></div>
+  <div class="card" style="left:690px;top:360px;width:540px;height:470px;${fadeUp(ap(t, c2, 0.7), 60)}"><b>Rural</b><span>areas may have no dermatologist within reach at all</span></div>
+  <div class="card" style="left:1260px;top:360px;width:540px;height:470px;${fadeUp(ap(t, c3, 0.7), 60)}"><b>Paywalls</b><span>most skin-check apps are generic, or charge per scan</span></div>`;
+};
+
+S.intro = (t) => `${bg(t)}
+  <div class="center lead" style="top:250px;${fadeUp(ap(t, 0.05, 0.5))}">So we built</div>
+  <div class="center" style="top:350px;${pop(t, cue("Skinsight") - 0.15, 0.8)}">${logoPill(210)}</div>
+  <div class="center" style="top:710px;${fadeUp(ap(t, cue("running") - 0.2, 0.6))}"><span class="chip" style="position:relative"><em>✓</em> Runs entirely in your browser · your photo never leaves your device</span></div>`;
+
+S.demo = (t, p) => {
+  const frame = Math.min(p.nframes, Math.floor(t * 30) + 1);
+  const src = `build/demo/f30/${String(frame).padStart(5, "0")}.jpg`;
+  const m = p.markers;
+  let label = "Live demo · skinsight-weld.vercel.app", step = "";
+  if (t >= m.benign_upload - 0.2) label = "Example 1 · A benign mole";
+  if (t >= m.malig_upload - 0.2) label = "Example 2 · Melanoma warning signs";
+  if (t >= m.friend_upload - 0.2) label = "Example 3 · Real-life phone photo";
+  if (t >= m.benign_upload - 0.2 && t < m.benign_crop) step = "Upload";
+  else if (t >= m.benign_crop && t < m.benign_result) step = "Crop";
+  else if (t >= m.benign_result && t < m.malig_upload) step = "Result";
+  const bw = 1640, bh = Math.round(bw * 9 / 16) + 46, left = (1920 - bw) / 2, top = 40;
+  const chipIn = (s) => fadeUp(ap(t, s, 0.5), 20);
+  const lastSwitch = [0, m.benign_upload - 0.2, m.malig_upload - 0.2, m.friend_upload - 0.2].filter((x) => x <= t).pop();
+  return `${bg(t)}
+  <div class="browser" style="left:${left}px;top:${top}px;width:${bw}px;height:${bh}px;${fadeUp(ap(t, 0, 0.6), 30)}">
+    <div class="bar"><span class="d" style="background:#ff5f57"></span><span class="d" style="background:#febc2e"></span><span class="d" style="background:#28c840"></span>
+      <span class="url">🔒 skinsight-weld.vercel.app</span></div>
+    <img src="${src}" style="display:block;width:${bw}px;height:${bh - 46}px">
+  </div>
+  <div class="chip" style="left:${left + 30}px;top:${top + bh - 100}px;${chipIn(lastSwitch)}">${label}${step ? ` <em>${step}</em>` : ""}</div>`;
+};
+
+S.slide = (t, p) => {
+  const sc = 1 + 0.025 * (t / p.dur);
+  let extra = "";
+  if (p.overlay && t >= p.overlay.at) {
+    extra = `<div class="abs" style="left:0;right:0;bottom:0;height:200px;background:linear-gradient(0deg, rgba(60,0,25,0.92), rgba(60,0,25,0.75));display:flex;align-items:center;justify-content:center;gap:30px;${fadeUp(ap(t, p.overlay.at, 0.5), 60)}">
+      <span style="font:800 64px Unbounded;color:#ffb3cb">⚠</span><span style="font:600 40px/1.25 'Space Grotesk';max-width:1500px">${p.overlay.text}</span></div>`;
+  }
+  return `<div class="slide" style="background-image:url(${p.src});transform:scale(${sc});opacity:${ap(t, 0, 0.4)}"></div>${extra}`;
+};
+
+S.pipeline = (t) => {
+  const at = [0.2, 0.9, cue("ONNX") - 0.3, cue("browser") - 0.4];
+  const nodes = [["PyTorch", "ResNet-18 checkpoint<br>(.pth, 45 MB)"], ["ONNX", "same network,<br>portable graph"], ["WebAssembly", "onnxruntime-web<br>runs it on-device"], ["Your browser", "no server,<br>no upload"]];
+  let h = "";
+  nodes.forEach(([b, s], i) => {
+    const x = 130 + i * 430;
+    h += `<div class="node" style="left:${x}px;top:430px;${pop(t, at[i], 0.6)}"><b>${b}</b><span>${s}</span></div>`;
+    if (i < 3) h += `<div class="abs" style="left:${x + 340}px;top:520px;font:800 60px Unbounded;${fadeUp(ap(t, at[i + 1] - 0.2, 0.4), 0)}">→</div>`;
+  });
+  return `${bg(t)}<div class="center h2" style="top:180px;${fadeUp(ap(t, 0))}">From PyTorch to your browser</div>
+  <div class="center lead" style="top:270px;font-size:34px;${fadeUp(ap(t, 0.3))}">checked to match the evaluated model to within 0.000001</div>${h}`;
+};
+
+S.eval_new = (t, p) => {
+  const m = p.m;
+  const a = cue("AUROC") - 0.3, s = cue("caught") - 0.3, d = cue("Dermatologists") - 0.2;
+  return `${bg(t)}
+  <div class="abs h2" style="left:120px;top:110px;width:1700px;${fadeUp(ap(t, 0.1))}">Re-tested on ${m.n} lesions it had never seen</div>
+  <div class="abs lead" style="left:120px;top:190px;font-size:34px;${fadeUp(ap(t, cue("ISIC") - 0.3))}">added to the ISIC Archive after the model was trained · ${m.nm} malignant · ${m.nb} benign</div>
+  <div class="tile" style="left:120px;top:360px;width:740px;height:330px;${fadeUp(ap(t, a, 0.6), 50)}"><b>${count(t, a, 1.2, m.auroc, 2)}</b><strong>AUROC</strong><span>95% CI ${m.ci} · 0.5 is a coin flip, 1.0 is perfect</span></div>
+  <div class="abs lead" style="left:1000px;top:330px;font-size:34px;${fadeUp(ap(t, s))}">Share of cancers caught</div>
+  <div class="barrow" style="top:420px;${fadeUp(ap(t, s, 0.5), 20)}"><div class="lbl"><span>Skinsight (default setting)</span><span>${count(t, s, 1.2, m.sens)}%</span></div><div class="track"><div class="fill" style="width:${m.sens * ease((t - s) / 1.2)}%;background:#fff"></div></div></div>
+  <div class="barrow" style="top:560px;${fadeUp(ap(t, d, 0.5), 20)}"><div class="lbl"><span>Dermatologists, dermoscopy*</span><span>${count(t, d, 1.2, 87)}%</span></div><div class="track"><div class="fill" style="width:${87 * ease((t - d) / 1.2)}%;background:#ffb3cb"></div></div></div>
+  <div class="abs" style="left:120px;top:770px;width:1680px;font:500 24px 'Space Grotesk';opacity:${0.85 * ap(t, d + 1)}">* Haenssle et al., Annals of Oncology 2018: 58 dermatologists, different images. Context, not a head-to-head.</div>
+  <div class="abs" style="left:120px;top:830px;width:1680px;font:600 34px 'Space Grotesk';${fadeUp(ap(t, d + 1.6))}">Our original 2025 random split said 90% accuracy. On new images: ${m.acc}%.</div>`;
+};
+
+S.limits = (t, p) => {
+  const m = p.m;
+  const rows = [
+    ["blurry", "Blurry photo", `AUROC ${m.blur8} at heavy blur`],
+    ["badly", "Badly lit (±50% brightness)", `AUROC ${m.dark}`],
+    ["small", "Spot small in the frame", `AUROC ${m.small}`],
+    ["re-cropping", "Re-cropping or mirroring", `flips ${m.flip}% of answers`],
+    ["Darker", "Darker skin tones (Fitzpatrick IV–VI)", "0 test images"],
+  ];
+  const conc = cue("educational") - 0.5;
+  const dim = 1 - ap(t, conc - 0.1, 0.45);
+  let h = "";
+  rows.forEach(([w, a, b], i) => {
+    h += `<div class="row" style="top:${250 + i * 124}px;${fadeUp(ap(t, cue(w) - 0.25, 0.5), 30)};opacity:${Math.min(ap(t, cue(w) - 0.25, 0.5), dim)}"><div class="ic">${i + 1}</div><div class="t">${a}</div><div class="m">${b}</div></div>`;
+  });
+  return `${bg(t)}<div class="center h1" style="top:90px;opacity:${Math.min(dim, ap(t, 0.1))};transform:translateY(${(1 - ap(t, 0.1)) * 40}px)">Where it breaks</div>${h}
+  <div class="center" style="top:360px;${pop(t, conc, 0.7)}"><div class="h1" style="font-size:96px">Educational tool,<br>not a diagnosis.</div>
+  <div class="lead" style="margin-top:40px;${fadeUp(ap(t, cue("every") - 0.3))}">Every result tells you how much to trust it.</div></div>`;
+};
+
+S.outro = (t) => `${bg(t)}
+  <div class="center" style="top:250px;${pop(t, 0.1, 0.9)}">${logoPill(190)}</div>
+  <div class="center lead" style="top:560px;${fadeUp(ap(t, cue("Check") - 0.2))}">Check a spot in under a minute. Know when to see a doctor.</div>
+  <div class="center" style="top:680px;${fadeUp(ap(t, cue("doctor") + 0.3))}"><span class="chip" style="position:relative;font-size:34px">skinsight-weld.vercel.app</span></div>
+  <div class="center cite" style="top:800px;${fadeUp(ap(t, cue("doctor") + 0.7))}">GITHUB.COM/AR2095/SKINSIGHTAI</div>
+  <div class="center" style="top:1000px;font:500 20px 'Space Grotesk';opacity:${0.7 * ap(t, cue("doctor") + 1)}">For education only. Not a substitute for professional medical advice.</div>`;
+
+window.render = (scene, t, params = {}) => {
+  W = params.words || [];
+  document.getElementById("stage").innerHTML = S[scene](t, params);
+};
+window.preload = (srcs) => Promise.all(srcs.map((s) => new Promise((r) => { const i = new Image(); i.onload = i.onerror = r; i.src = s; })));
+</script>
+</body>
+</html>

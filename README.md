@@ -33,7 +33,7 @@ Skin cancer is the most common cancer in the United States, and catching it earl
 ![What It Does](https://skinsight-weld.vercel.app/devpost/section-what-it-does.webp)
 
 1. **Upload** a close-up photo of a skin spot. You can also try one of the built-in ISIC samples, including one cancer that Skinsight misses.
-2. **Crop** it with a square box. A live preview with a rule-of-thirds grid shows exactly what the model will see, next to example crops. Our robustness test found tighter crops help, so the crop step matters.
+2. **Crop** it with a square box. A live preview with a rule-of-thirds grid shows exactly what the model will see, next to example crops. The crop step matters: tighter crops raised AUROC in our robustness test, but re-cropping can also flip an individual answer.
 3. **Get a result.** You see benign or malignant with the probability, the most likely lesion types, next steps written in plain language, and a "how much to trust this" note. That note quotes how often lesions with a similar score were actually cancer in our evaluation.
 
 The page also has a **How accurate is it?** section. Its numbers are imported directly from `eval/results/metrics.json`, so the site can never drift from the evaluation.
@@ -137,6 +137,7 @@ The image IDs and labels are committed ([`eval/data/manifest.csv`](eval/data/man
 - **Its 95% NPV mostly reflects how rare cancer is.** At this test set's 6.9% cancer rate, even "always benign" would be right 93% of the time. A "benign" result does not rule cancer out, and the app says so.
 - **Moving the cut-off doesn't rescue it.** Thresholds chosen on the test set itself (so these are optimistic) give 57.8% specificity at 80% sensitivity, and 39.0% specificity at 90% sensitivity.
 - **The probabilities are not calibrated** (ECE 0.25, Brier 0.21). Benign lesions average P(malignant) = 0.30. That's why the app reports the observed rate for each score range instead of the raw number.
+- **Individual answers are unstable near the cut-off.** Mirroring the image changes 15.0% of benign/malignant decisions. Rotating it 90° changes 23.4%, and cropping to the central 75% changes 21.6%, even though AUROC barely moves. The melanoma photo in our demo video is called malignant (0.97) with the app's default crop, but benign (0.01) when cropped tightly around the lesion.
 - **The 2025 numbers were optimistic.** The original random split reported 90.4% binary accuracy. On genuinely new images, accuracy is 71.7%, below the 93% you'd get from always saying "benign". This is the main finding of this submission.
 
 ### Where it stops being useful
@@ -186,6 +187,7 @@ Inference cost: 10 ms per image on a laptop CPU (PyTorch, batch of 1). The web a
 - **Dermoscopic test, phone-photo use.** The test images are dermoscopic, but people will upload phone photos. Our only clinical-photo split has 18 images.
 - **Same archive.** The temporal split rules out duplicate *images*. But it is still the ISIC Archive, and a patient photographed before June 2025 could reappear with a new image of a different lesion.
 - **Subtype coverage.** Only 5 of the 11 subtype classes appear in the post-cutoff data, so 6 classes are untested.
+- **Crop and orientation sensitivity.** A single result can flip with how the photo is framed or mirrored (15–34% of decisions in our tests). We have not yet added test-time averaging.
 - **Unprincipled threshold.** The 0.5 cut-off was never tuned for sensitivity, and the scores are uncalibrated.
 - **Indirect dermatologist comparison.** The dermatologist numbers come from a published study on different images.
 - **Unrecoverable 2025 validation split.** It used no seed, so the original 90% figure can't be reproduced or audited.
@@ -216,10 +218,11 @@ Inference cost: 10 ms per image on a laptop CPU (PyTorch, batch of 1). The web a
    - patient-level train/validation/test splits with a fixed seed
    - class weighting for the rare malignant classes
    - phone-photo-style augmentation (blur, lighting, framing)
-2. **Calibrate and choose the threshold for sensitivity.** Apply temperature scaling on a validation set, then pick the cut-off for about 90% sensitivity on validation, not test.
-3. **Test on phone photos and diverse skin.** Evaluate externally on PAD-UFES-20 (smartphone images, excluded from training) and on skin-tone-labelled sets such as DDI and Fitzpatrick17k, reporting results by Fitzpatrick type.
-4. **Add a reject option.** Detect out-of-distribution or low-quality photos and decline to answer instead of guessing.
-5. **Run a small reader study.** Compare Skinsight against non-expert users with the ABCDE checklist on the same images, since that is the real alternative for our users.
+2. **Stabilize single answers.** Average predictions over flips, rotations and several crops (test-time augmentation), and re-measure the decision-flip rate.
+3. **Calibrate and choose the threshold for sensitivity.** Apply temperature scaling on a validation set, then pick the cut-off for about 90% sensitivity on validation, not test.
+4. **Test on phone photos and diverse skin.** Evaluate externally on PAD-UFES-20 (smartphone images, excluded from training) and on skin-tone-labelled sets such as DDI and Fitzpatrick17k, reporting results by Fitzpatrick type.
+5. **Add a reject option.** Detect out-of-distribution or low-quality photos and decline to answer instead of guessing.
+6. **Run a small reader study.** Compare Skinsight against non-expert users with the ABCDE checklist on the same images, since that is the real alternative for our users.
 
 ---
 

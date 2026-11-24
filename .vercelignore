@@ -6,3 +6,4 @@ web/dist
 dual_head_skin_model.pth
 images
 *.pyc
+video
