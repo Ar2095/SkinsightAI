@@ -190,7 +190,9 @@ The app shows this next to each result, instead of the raw probability:
 
 **Subtype head** (dermoscopic, n = 198 with a fine-grained label; only 5 of the 11 classes appear in the new data): top-1 accuracy is 46.5%, below the 75.8% majority-class baseline, while top-3 accuracy is 85.9%. In the confusion matrix, every class's most common prediction is itself.
 
-<p align="center"><img src="eval/results/roc.png" width="48%" alt="ROC curves" /> <img src="eval/results/robustness.png" width="48%" alt="Robustness to image degradations" /></p>
+![ROC curves](https://skinsight-weld.vercel.app/devpost/roc.png)
+
+![Robustness to image degradations](https://skinsight-weld.vercel.app/devpost/robustness.png)
 
 ### What the results mean
 - **Skinsight ranks lesions clearly better than chance (AUROC 0.72), but it is not a screening tool.** At its default cut-off it catches about half of cancers (48.8% sensitivity). Dermatologists using dermoscopy catch about 87%.
