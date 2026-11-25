@@ -167,7 +167,6 @@ Scaled from the dermoscopic hold-out (41 cancers in 598 lesions, 6.9% prevalence
 **The cost that matters most is the missed cancer.** At its default setting, Skinsight would miss about 35 of every 69 cancers, while sending about as many benign lesions to a doctor as a dermatologist would. That's why it is framed as an educational first look, not a screening test, and why every benign result says so.
 
 ### Baselines
-(dermoscopic split)
 
 | Method | Sensitivity | Specificity | AUROC |
 |---|---|---|---|
