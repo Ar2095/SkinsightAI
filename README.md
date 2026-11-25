@@ -20,9 +20,9 @@ Skin cancer is the most common cancer in the United States, and **when it is cau
 
 | Criterion | Where |
 |---|---|
-| **Technical Depth** | [How It Was Built](#how-it-was-built): dual-head fine-tuned CNN, ONNX export, byte-exact browser preprocessing, three parity checks |
-| **Rigor & Reproducibility** | [Evaluation](#evaluation): temporal hold-out, metric in clinical units (per 1,000 lesions), bootstrap CIs, baselines, seeds and config; [Run It Yourself](#run-it-yourself): one command per step |
-| **Clinical Relevance & Honesty** | [The Problem](#the-problem), [Who Benefits, and Who Could Be Harmed](#who-benefits-and-who-could-be-harmed), [Limitations](#limitations) |
+| **Technical Depth** | **How It Was Built**: dual-head fine-tuned CNN, ONNX export, byte-exact browser preprocessing, three parity checks |
+| **Rigor & Reproducibility** | **Evaluation**: temporal hold-out, metric in clinical units (per 1,000 lesions), bootstrap CIs, baselines, seeds and config; **Run It Yourself**: one command per step |
+| **Clinical Relevance & Honesty** | **The Problem**, **Who Benefits, and Who Could Be Harmed**, **Limitations** |
 | **Demo Quality** | [Demo video](https://youtu.be/WciqO6wmbLM) (working app on screen in the first minute), [live site](https://skinsight-weld.vercel.app) with built-in sample images, nothing to install |
 
 ---
@@ -374,7 +374,7 @@ This writes to `eval/results/`:
 - `predictions.csv` (per-image scores)
 - `roc.png`, `calibration.png` and `robustness.png`
 
-The run is deterministic: see [Seeds and configuration](#seeds-and-configuration) for every setting and the only ways a rerun can differ.
+The run is deterministic: see **Seeds and configuration** (in Evaluation) for every setting and the only ways a rerun can differ.
 
 ### Check the deployed model against the evaluated one
 ```bash
