@@ -408,7 +408,3 @@ eval/
 web/                      Vite site deployed to Vercel (src/, public/model/, public/devpost/ banners)
 video/                    demo video pipeline (script, voiceover split, scene renderer)
 ```
-
----
-
-*Skinsight is for educational and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment. If you have any concerns, please consult a certified dermatologist.*
