@@ -14,13 +14,13 @@ Skin cancer is the most common cancer in the United States, and **when it is cau
 
 - **The model:** a ResNet-18 convolutional neural network, pretrained on ImageNet and fine-tuned with **two output heads** (benign vs. malignant, and lesion type) on about **78,000 labeled dermoscopic images** from the ISIC Archive.
 - **Private by design:** the model is exported to ONNX and runs **entirely in your browser**. Your photo is never uploaded anywhere, and there's no server to pay for.
-- **Tested honestly:** we evaluated it on **598 lesions added to the ISIC Archive after the model was trained**, with confidence intervals, baselines, subgroups and stress tests. Every result in the app quotes how often a similar score was actually cancer in that test.
+- **Tested honestly:** it was evaluated on **598 lesions added to the ISIC Archive after the model was trained**, with confidence intervals, baselines, subgroups and stress tests. Every result in the app quotes how often a similar score was actually cancer in that test.
 
 ### For judges: where to find each criterion
 
 | Criterion | Where |
 |---|---|
-| **Technical Depth** | [How We Built It](#how-we-built-it): dual-head fine-tuned CNN, ONNX export, byte-exact browser preprocessing, three parity checks |
+| **Technical Depth** | [How It Was Built](#how-it-was-built): dual-head fine-tuned CNN, ONNX export, byte-exact browser preprocessing, three parity checks |
 | **Rigor & Reproducibility** | [Evaluation](#evaluation): temporal hold-out, metric in clinical units (per 1,000 lesions), bootstrap CIs, baselines, seeds and config; [Run It Yourself](#run-it-yourself): one command per step |
 | **Clinical Relevance & Honesty** | [The Problem](#the-problem), [Who Benefits, and Who Could Be Harmed](#who-benefits-and-who-could-be-harmed), [Limitations](#limitations) |
 | **Demo Quality** | [Demo video](https://youtu.be/WciqO6wmbLM) (working app on screen in the first minute), [live site](https://skinsight-weld.vercel.app) with built-in sample images, nothing to install |
@@ -65,9 +65,9 @@ The page also has a **How accurate is it?** section. Its numbers are imported di
 
 ---
 
-![How We Built It](https://skinsight-weld.vercel.app/devpost/section-how-we-built-it.webp)
+![How It Was Built](https://skinsight-weld.vercel.app/devpost/section-how-it-was-built.webp)
 
-## How We Built It
+## How It Was Built
 
 ```
 ISIC Archive (78k labeled images)
@@ -80,7 +80,7 @@ ISIC Archive (78k labeled images)
 ```
 
 ### Data
-We trained on images from the [ISIC Archive](https://www.isic-archive.com) (downloaded May 2025), about 78,000 labeled dermoscopic images. We grouped them into binary (benign/malignant) and 11 subtype folders taken from ISIC's diagnosis hierarchy (`diagnosis_1` / `diagnosis_2`), for example `malignant_melanocytic-proliferation` (melanoma) and `benign_epidermal-proliferations` (e.g. seborrheic keratosis).
+The model was trained on images from the [ISIC Archive](https://www.isic-archive.com) (downloaded May 2025), about 78,000 labeled dermoscopic images, grouped into binary (benign/malignant) and 11 subtype folders taken from ISIC's diagnosis hierarchy (`diagnosis_1` / `diagnosis_2`), for example `malignant_melanocytic-proliferation` (melanoma) and `benign_epidermal-proliferations` (e.g. seborrheic keratosis).
 
 ### Model
 [`skin-imaging.py`](skin-imaging.py) holds the training code; [`skinsight_model.py`](skinsight_model.py) is the shared model definition used by evaluation and export.
@@ -101,7 +101,7 @@ A static Vite site in [`web/`](web/), hosted on Vercel, with no backend:
 - Cropping uses Cropper.js at the photo's full resolution.
 - An earlier Streamlit interface ([`skin_classifier.py`](skin_classifier.py)) is also included.
 
-**The deployed app is checked against the evaluated model.** The browser's canvas resize uses a different filter from the Python pipeline, which would make the app's numbers differ from the evaluation. So we ported PIL's antialiased bilinear resampler to JavaScript ([`web/src/preprocess.js`](web/src/preprocess.js)), and it reproduces PIL byte-for-byte. Each layer is verified:
+**The deployed app is checked against the evaluated model.** The browser's canvas resize uses a different filter from the Python pipeline, which would make the app's numbers differ from the evaluation. So PIL's antialiased bilinear resampler was ported to JavaScript ([`web/src/preprocess.js`](web/src/preprocess.js)), and it reproduces PIL byte-for-byte. Each layer is verified:
 
 | Check | Script | Result |
 |---|---|---|
@@ -117,13 +117,13 @@ So the evaluation below describes exactly what a user of the website gets.
 
 ## Evaluation
 
-### What we measured
+### What was measured
 **The task:** given a dermoscopic image of a lesion, say whether it is malignant.
 
-**Primary metric:** AUROC, plus **sensitivity** (share of cancers caught) and **specificity** (share of benign lesions correctly cleared) at the app's own decision rule, P(malignant) > 0.5. We report them in clinical units below: **cancers caught and missed, and unnecessary referrals, per 1,000 lesions checked.** We also report PPV/NPV, Brier score and calibration. 95% confidence intervals come from 2,000 stratified bootstrap resamples. The subtype head is scored with top-1 and top-3 accuracy.
+**Primary metric:** AUROC, plus **sensitivity** (share of cancers caught) and **specificity** (share of benign lesions correctly cleared) at the app's own decision rule, P(malignant) > 0.5. They are reported in clinical units below: **cancers caught and missed, and unnecessary referrals, per 1,000 lesions checked.** PPV/NPV, Brier score and calibration are also reported. 95% confidence intervals come from 2,000 stratified bootstrap resamples. The subtype head is scored with top-1 and top-3 accuracy.
 
-### How we measured it: a temporal hold-out
-A random split can put images of the same lesion or patient on both sides, which inflates results. Our training-time validation split was a random 80/20 split with no fixed seed, so we don't rely on it. Instead, [`eval/fetch_holdout.py`](eval/fetch_holdout.py) builds a test set the model **cannot** have seen:
+### How it was measured: a temporal hold-out
+A random split can put images of the same lesion or patient on both sides, which inflates results. The training-time validation split was a random 80/20 split with no fixed seed, so it isn't relied on here. Instead, [`eval/fetch_holdout.py`](eval/fetch_holdout.py) builds a test set the model **cannot** have seen:
 
 - **New images only.** It queries the public ISIC API for every image *created after 2025-06-01*. The model checkpoint was committed on 2025-05-20, so none of these can be in its training data.
 - **Labeled lesions only.** It keeps images with a Benign or Malignant diagnosis.
@@ -162,7 +162,7 @@ Scaled from the dermoscopic hold-out (41 cancers in 598 lesions, 6.9% prevalence
 | Benign lesions correctly reassured | 684 | 664 | 0 |
 | **Referrals per cancer found** | **8.4** | 5.5 | 14.6 |
 
-\* Sensitivity 86.6% / specificity 71.3% for 58 dermatologists from [Haenssle et al., *Ann Oncol* 2018](https://doi.org/10.1093/annonc/mdy166), applied to our prevalence. Different images, so this is context, not a head-to-head.
+\* Sensitivity 86.6% / specificity 71.3% for 58 dermatologists from [Haenssle et al., *Ann Oncol* 2018](https://doi.org/10.1093/annonc/mdy166), applied to this test set's prevalence. Different images, so this is context, not a head-to-head.
 
 **The cost that matters most is the missed cancer.** At its default setting, Skinsight would miss about 35 of every 69 cancers, while sending about as many benign lesions to a doctor as a dermatologist would. That's why it is framed as an educational first look, not a screening test, and why every benign result says so.
 
@@ -198,8 +198,8 @@ The app shows this next to each result, instead of the raw probability:
 - **The 95% NPV mostly reflects how rare cancer is.** At 6.9% prevalence, even "always benign" would be right 93% of the time.
 - **Moving the cut-off doesn't rescue it.** Thresholds chosen on the test set itself (so these are optimistic) give 57.8% specificity at 80% sensitivity, and 39.0% specificity at 90% sensitivity.
 - **The probabilities are not calibrated** (ECE 0.25, Brier 0.21). Benign lesions average P(malignant) = 0.30. That's why the app reports the observed rate for each score range.
-- **Individual answers are unstable near the cut-off.** Mirroring the image changes 15.0% of benign/malignant decisions, rotating it 90° changes 23.4%, and cropping to the central 75% changes 21.6%, even though AUROC barely moves. The melanoma photo in our demo video is called malignant (0.97) with the app's default crop, but benign (0.01) when cropped tightly around the lesion.
-- **Random splits flatter models.** Our training-time random split reported 90.4% binary accuracy. On genuinely new lesions, accuracy is 71.7%, below the 93% you'd get from always saying "benign". The temporal hold-out is the number to trust.
+- **Individual answers are unstable near the cut-off.** Mirroring the image changes 15.0% of benign/malignant decisions, rotating it 90° changes 23.4%, and cropping to the central 75% changes 21.6%, even though AUROC barely moves. The melanoma photo in the demo video is called malignant (0.97) with the app's default crop, but benign (0.01) when cropped tightly around the lesion.
+- **Random splits flatter models.** The training-time random split reported 90.4% binary accuracy. On genuinely new lesions, accuracy is 71.7%, below the 93% you'd get from always saying "benign". The temporal hold-out is the number to trust.
 
 ### Where it stops being useful
 Measured with [`eval/evaluate.py`](eval/evaluate.py) by degrading the dermoscopic split:
@@ -236,9 +236,9 @@ Measured with [`eval/evaluate.py`](eval/evaluate.py) by degrading the dermoscopi
 | Score bins | 0, 0.1, 0.5, 0.9, 1.0 | `eval/evaluate.py` |
 | Dependencies | pinned versions | `requirements.txt` |
 
-**If your numbers differ from ours,** it will be for one of these reasons:
-- **You passed `--refresh`.** That re-queries the ISIC API, and the archive keeps growing, so the test set changes. Without it, the committed metadata reproduces our exact 749 images.
-- **Different hardware or BLAS.** Probabilities can move by about 1e-6. In our checks no decision changed.
+**If your numbers differ from these,** it will be for one of these reasons:
+- **You passed `--refresh`.** That re-queries the ISIC API, and the archive keeps growing, so the test set changes. Without it, the committed metadata reproduces the exact 749 images used here.
+- **Different hardware or BLAS.** Probabilities can move by about 1e-6. In the parity checks no decision changed.
 - **You retrained.** The training-time split had no seed, so retraining gives a different checkpoint. Every number here is for the committed `dual_head_skin_model.pth`.
 
 ---
@@ -249,13 +249,13 @@ Measured with [`eval/evaluate.py`](eval/evaluate.py) by degrading the dermoscopi
 
 **Who benefits**
 - **People who can't easily see a dermatologist.** They get a free, private, immediate first look, a reminder of the warning signs (ABCDE), and a clear prompt to book a visit when a spot is flagged or changing.
-- **People unsure whether a spot is worth an appointment.** A high score is a concrete nudge to act: in our test, spots scoring above 0.9 were ten times more likely to be cancer than spots scoring under 0.1.
+- **People unsure whether a spot is worth an appointment.** A high score is a concrete nudge to act: in testing, spots scoring above 0.9 were ten times more likely to be cancer than spots scoring under 0.1.
 - **Students and the public,** who can see a clear example of what a dermatology model can and can't do, with its evaluation published alongside it.
 
-**Who could be harmed, and what we did about it**
+**Who could be harmed, and how the app addresses it**
 - **People falsely reassured.** This is the biggest risk: Skinsight misses about half of cancers. A benign result never says "safe". The app shows the miss rate on every benign result and tells people to see a doctor about changing spots.
-- **People sent to the doctor unnecessarily.** About 88% of malignant flags in our test were false alarms. That causes anxiety and uses appointments. The result card quotes the real rate.
-- **People with darker skin.** We could not measure performance for Fitzpatrick IV–VI at all, and dermatology datasets are known to under-represent them. The app lists this under "Don't trust it when".
+- **People sent to the doctor unnecessarily.** About 88% of malignant flags in the test set were false alarms. That causes anxiety and uses appointments. The result card quotes the real rate.
+- **People with darker skin.** Performance could not be measured for Fitzpatrick IV–VI at all, and dermatology datasets are known to under-represent them. The app lists this under "Don't trust it when".
 - **Privacy.** Skin photos are sensitive. Inference runs on-device, and no image is uploaded or stored.
 - **Misuse on the wrong images.** On non-dermoscopic or microscopy images, the output is meaningless. The app gives photo guidance and states the known failure modes.
 
@@ -267,13 +267,13 @@ Measured with [`eval/evaluate.py`](eval/evaluate.py) by degrading the dermoscopi
 
 - **Few positives.** Only 41 malignant lesions in the primary split, so sensitivity's 95% CI spans 34–63%.
 - **Label quality varies.** 406 of the 557 benign labels are not biopsy-confirmed. Most are expert consensus on a single image, from the MEL-SELF trial.
-- **Dermoscopic test, phone-photo use.** The test images are dermoscopic, but people will upload phone photos. Our only clinical-photo split has 18 images.
+- **Dermoscopic test, phone-photo use.** The test images are dermoscopic, but people will upload phone photos. The only clinical-photo split has 18 images.
 - **Same archive.** The temporal split rules out duplicate *images*. But it is still the ISIC Archive, and a patient photographed before June 2025 could reappear with a new image of a different lesion.
 - **Subtype coverage.** Only 5 of the 11 subtype classes appear in the post-cutoff data, so 6 classes are untested.
-- **Crop and orientation sensitivity.** A single result can flip with how the photo is framed or mirrored (15–34% of decisions in our tests).
+- **Crop and orientation sensitivity.** A single result can flip with how the photo is framed or mirrored (15–34% of decisions in testing).
 - **Untuned threshold.** The 0.5 cut-off was never tuned for sensitivity, and the scores are uncalibrated.
 - **Indirect dermatologist comparison.** The dermatologist numbers come from a published study on different images.
-- **Unrecoverable training split.** The training-time validation split used no seed, so its 90% figure can't be reproduced or audited. We report the temporal hold-out instead.
+- **Unrecoverable training split.** The training-time validation split used no seed, so its 90% figure can't be reproduced or audited. The temporal hold-out is reported instead.
 
 ---
 
@@ -281,18 +281,18 @@ Measured with [`eval/evaluate.py`](eval/evaluate.py) by degrading the dermoscopi
 
 ## Challenges
 
-- **Finding a dataset.** Many skin datasets we found were incomplete, synthetic, or too small. The ISIC Archive's diagnosis hierarchy gave us 11 consistent classes.
-- **Choosing a model.** We tried several architectures and ensembles (`ensemble_predictions.py` in the history). We kept ResNet-18 because the alternatives were less accurate.
-- **Finding a fair test set.** The training split had no seed, so we couldn't recover it. Then we noticed that ISIC's API pages images in creation order, which let us query only images added after the model existed.
-- **Matching the browser to Python exactly.** Canvas resizing gave slightly different pixels, so we ported PIL's fixed-point resampler to JavaScript and tested it byte-for-byte.
+- **Finding a dataset.** Many available skin datasets were incomplete, synthetic, or too small. The ISIC Archive's diagnosis hierarchy provided 11 consistent classes.
+- **Choosing a model.** Several architectures and ensembles were tried (`ensemble_predictions.py` in the history). ResNet-18 was kept because the alternatives were less accurate.
+- **Finding a fair test set.** The training split had no seed, so it couldn't be recovered. The fix came from ISIC's API, which pages images in creation order, so it can be queried for only the images added after the model existed.
+- **Matching the browser to Python exactly.** Canvas resizing gave slightly different pixels, so PIL's fixed-point resampler was ported to JavaScript and tested byte-for-byte.
 
 ---
 
-![What We Learned](https://skinsight-weld.vercel.app/devpost/section-what-we-learned.webp)
+![Lessons Learned](https://skinsight-weld.vercel.app/devpost/section-lessons-learned.webp)
 
-## What We Learned
+## Lessons Learned
 
-- **A random split can flatter a model badly.** Ours did: 90% accuracy on a random split, versus 72% accuracy and 49% sensitivity on new lesions.
+- **A random split can flatter a model badly.** This one did: 90% accuracy on a random split, versus 72% accuracy and 49% sensitivity on new lesions.
 - **Accuracy is the wrong headline when 93% of lesions are benign.** Sensitivity, specificity and AUROC, in cancers caught and missed, tell the real story.
 - **A probability isn't a risk until it's calibrated.** A score of 0.97 here meant "about 1 in 5 chance of cancer".
 - **Shipping the model is part of the evaluation.** If the deployed preprocessing differs from the evaluated one, the numbers no longer describe the product.
@@ -311,7 +311,7 @@ Measured with [`eval/evaluate.py`](eval/evaluate.py) by degrading the dermoscopi
 3. **Calibrate and choose the threshold for sensitivity.** Apply temperature scaling on a validation set, then pick the cut-off for about 90% sensitivity on validation, not test.
 4. **Test on phone photos and diverse skin.** Evaluate externally on PAD-UFES-20 (smartphone images, excluded from training) and on skin-tone-labelled sets such as DDI and Fitzpatrick17k, reporting results by Fitzpatrick type.
 5. **Add a reject option.** Detect out-of-distribution or low-quality photos and decline to answer instead of guessing.
-6. **Run a small reader study.** Compare Skinsight against non-expert users with the ABCDE checklist on the same images, since that is the real alternative for our users.
+6. **Run a small reader study.** Compare Skinsight against non-expert users with the ABCDE checklist on the same images, since that is the real alternative for Skinsight's users.
 
 ---
 
@@ -319,7 +319,7 @@ Measured with [`eval/evaluate.py`](eval/evaluate.py) by degrading the dermoscopi
 
 ## Credits
 
-**Team:** [Ar2095](https://github.com/Ar2095) and [vlww](https://github.com/vlww), two students.
+**Built by:** [vlww](https://github.com/vlww), a student.
 
 **Data**
 - [ISIC Archive](https://www.isic-archive.com), International Skin Imaging Collaboration. Training images (May 2025) and test images (created after 2025-06-01) are each under their own CC-0 or CC-BY license. All test images are CC-BY, contributed by:
@@ -329,7 +329,7 @@ Measured with [`eval/evaluate.py`](eval/evaluate.py) by degrading the dermoscopi
 - The in-app sample images are ISIC_6537724, ISIC_3099700, ISIC_5423259 and ISIC_7168023 (CC-BY, from MSKCC and Navarrete et al.).
 - Demo video: the benign mole and melanoma photos come from public skin-lesion datasets outside the ISIC Archive, so the model never trained on anything from those sources. The third photo is a friend's mole, taken on a phone.
 
-**Models and code we didn't write**
+**Third-party models and code**
 - [ResNet-18](https://arxiv.org/abs/1512.03385) (He et al., 2016), with ImageNet weights from [torchvision](https://pytorch.org/vision/)
 - [PyTorch](https://pytorch.org), [scikit-learn](https://scikit-learn.org), [pandas](https://pandas.pydata.org), [Matplotlib](https://matplotlib.org), [Pillow](https://python-pillow.org)
 - Pillow's bilinear resampler (`libImaging/Resample.c`, HPND license), ported to JavaScript in `web/src/preprocess.js`
@@ -340,7 +340,7 @@ Measured with [`eval/evaluate.py`](eval/evaluate.py) by degrading the dermoscopi
 **Demo video**
 - Narration: AI voice generated with [ElevenLabs](https://elevenlabs.io) ("Chris"), script in [`video/SCRIPT.md`](video/SCRIPT.md)
 - Music: GarageBand Apple Loops (royalty-free)
-- Slides from our Skinsight presentation
+- Slides from the Skinsight project presentation
 
 **Statistics cited**
 - [Skin Cancer Foundation](https://www.skincancer.org/skin-cancer-information/skin-cancer-facts/) (1 in 5 Americans by age 70)
@@ -348,7 +348,7 @@ Measured with [`eval/evaluate.py`](eval/evaluate.py) by degrading the dermoscopi
 - [American Cancer Society](https://www.cancer.org/cancer/types/melanoma-skin-cancer/detection-diagnosis-staging/survival-rates-for-melanoma-skin-cancer-by-stage.html) (melanoma survival by stage)
 - [Haenssle et al. 2018](https://doi.org/10.1093/annonc/mdy166) (dermatologist reference)
 
-**AI tools:** Claude Code (Anthropic) helped write the hold-out evaluation scripts, the ONNX export, the web app, the banners and this README. We reviewed every result and every number above against the scripts' output. The demo video's narration is an ElevenLabs AI voice reading our script.
+**AI tools:** Claude Code (Anthropic) helped write the hold-out evaluation scripts, the ONNX export, the web app, the banners and this README. Every result and number above was checked against the scripts' output. The demo video's narration is an ElevenLabs AI voice reading the project's script.
 
 ---
 

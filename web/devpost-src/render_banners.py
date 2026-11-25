@@ -20,13 +20,13 @@ BASE = "http://localhost:5179/devpost-src/banner.html"
 SECTIONS = {
     "problem": ("The Problem", "and who has it"),
     "what-it-does": ("What It Does", ""),
-    "how-we-built-it": ("How We Built It", "method"),
+    "how-it-was-built": ("How It Was Built", "method"),
     "evaluation": ("Evaluation", "what we measured and how"),
     "benefits-harms": ("Who Benefits", "and who could be harmed"),
     "limitations": ("Limitations", ""),
     "challenges": ("Challenges", ""),
-    "what-we-learned": ("What We Learned", ""),
-    "improvements": ("Improvements", "what we'd do next"),
+    "lessons-learned": ("Lessons Learned", ""),
+    "improvements": ("Improvements", "what comes next"),
     "credits": ("Credits", "models, data, code and AI tools"),
 }
 

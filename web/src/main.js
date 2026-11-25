@@ -205,8 +205,8 @@ function renderResult(pMal, pSub, rgb224) {
   const bin = metrics.score_bins_dermoscopic.find((b) => pMal >= b.low && (pMal < b.high || b.high === 1));
   const binText = `Of the ${bin.n} test lesions that scored between ${bin.low} and ${bin.high}, <b>${bin.n_malignant} turned out to be malignant</b> (${pct(bin.malignant_rate)}).`;
   $("trust").innerHTML = malignant
-    ? `<b>How much to trust this:</b> ${binText} Most flags in our tests were false alarms, but spots scoring this high were far more likely to be cancer than low-scoring ones (${pct(metrics.score_bins_dermoscopic[0].malignant_rate, 1)} under 0.1). A doctor visit is the safe next step.`
-    : `<b>How much to trust this:</b> ${binText} Skinsight still <b>missed ${pct(1 - derm.sensitivity)} of cancers</b> in our tests, so a benign result does not rule cancer out.`;
+    ? `<b>How much to trust this:</b> ${binText} Most flags in testing were false alarms, but spots scoring this high were far more likely to be cancer than low-scoring ones (${pct(metrics.score_bins_dermoscopic[0].malignant_rate, 1)} under 0.1). A doctor visit is the safe next step.`
+    : `<b>How much to trust this:</b> ${binText} Skinsight still <b>missed ${pct(1 - derm.sensitivity)} of cancers</b> in testing, so a benign result does not rule cancer out.`;
 
   const rows = SUBTYPES.map(([key, name, mal], i) => ({ key, name, mal, p: pSub[i] }))
     .filter((r) => r.p > 0.01)
