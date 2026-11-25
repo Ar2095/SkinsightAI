@@ -26,7 +26,7 @@ SECTIONS = {
     "limitations": ("Limitations", ""),
     "challenges": ("Challenges", ""),
     "what-we-learned": ("What We Learned", ""),
-    "another-month": ("Another Month", "what we'd do next"),
+    "improvements": ("Improvements", "what we'd do next"),
     "credits": ("Credits", "models, data, code and AI tools"),
 }
 
