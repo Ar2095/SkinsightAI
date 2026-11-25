@@ -2,7 +2,7 @@
 
 # Skinsight: AI-Powered Dermatology Insights
 
-### **Try it (no install):** https://skinsight-weld.vercel.app
+### **Try it:** https://skinsight-weld.vercel.app
 ### **Demo video:** https://youtu.be/WciqO6wmbLM
 ### **Code:** https://github.com/Ar2095/SkinsightAI
 
@@ -319,8 +319,6 @@ Measured with [`eval/evaluate.py`](eval/evaluate.py) by degrading the dermoscopi
 
 ## Credits
 
-**Built by:** [vlww](https://github.com/vlww), a student.
-
 **Data**
 - [ISIC Archive](https://www.isic-archive.com), International Skin Imaging Collaboration. Training images (May 2025) and test images (created after 2025-06-01) are each under their own CC-0 or CC-BY license. All test images are CC-BY, contributed by:
   - Memorial Sloan Kettering Cancer Center
@@ -335,12 +333,6 @@ Measured with [`eval/evaluate.py`](eval/evaluate.py) by degrading the dermoscopi
 - Pillow's bilinear resampler (`libImaging/Resample.c`, HPND license), ported to JavaScript in `web/src/preprocess.js`
 - [ONNX Runtime Web](https://onnxruntime.ai) (MIT), [Cropper.js](https://fengyuanchen.github.io/cropperjs/) (MIT), [Vite](https://vite.dev) (MIT)
 - [Streamlit](https://streamlit.io) and [streamlit-cropper](https://github.com/turner-anderson/streamlit-cropper) for the Streamlit interface
-- Fonts: Jost, Inter, Unbounded and Space Grotesk (Google Fonts, SIL OFL)
-
-**Demo video**
-- Narration: AI voice generated with [ElevenLabs](https://elevenlabs.io) ("Chris"), script in [`video/SCRIPT.md`](video/SCRIPT.md)
-- Music: GarageBand Apple Loops (royalty-free)
-- Slides from the Skinsight project presentation
 
 **Statistics cited**
 - [Skin Cancer Foundation](https://www.skincancer.org/skin-cancer-information/skin-cancer-facts/) (1 in 5 Americans by age 70)
@@ -348,7 +340,7 @@ Measured with [`eval/evaluate.py`](eval/evaluate.py) by degrading the dermoscopi
 - [American Cancer Society](https://www.cancer.org/cancer/types/melanoma-skin-cancer/detection-diagnosis-staging/survival-rates-for-melanoma-skin-cancer-by-stage.html) (melanoma survival by stage)
 - [Haenssle et al. 2018](https://doi.org/10.1093/annonc/mdy166) (dermatologist reference)
 
-**AI tools:** Claude Code (Anthropic) helped write the hold-out evaluation scripts, the ONNX export, the web app, the banners and this README. Every result and number above was checked against the scripts' output. The demo video's narration is an ElevenLabs AI voice reading the project's script.
+**AI tools:** Anthropic helped write the hold-out evaluation scripts, the ONNX export, the web app, the banners and this README. Every result and number above was checked against the scripts' output.
 
 ---
 
